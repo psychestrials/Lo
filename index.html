@@ -416,8 +416,17 @@
     <button class="icon-btn" id="exportAllBtn">Export everything (JSON)</button>
     <button class="icon-btn" id="exportBtn">Export this conversation</button>
     <button class="icon-btn" id="importBtn">Import</button>
+    <button class="icon-btn" id="importTextBtn">Import from text</button>
     <button class="icon-btn" id="copyBtn">Copy as text</button>
     <input type="file" id="importFile" accept=".json" style="display:none">
+    <div id="importTextModal" style="display:none; margin-top:8px;">
+      <textarea id="importTextArea" style="width:100%; height:180px; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--radius); padding:8px; font-family:var(--font-body); font-size:13px; resize:vertical;" placeholder="Paste a conversation here. Supports claude.ai format (Human:/Assistant:), or any Name: format."></textarea>
+      <div class="row" style="margin-top:6px; gap:6px;">
+        <input id="importTextTitle" style="flex:1; background:var(--surface); color:var(--text); border:1px solid var(--border); border-radius:var(--radius); padding:6px 8px; font-size:13px;" placeholder="Conversation title (optional)">
+        <button class="icon-btn" id="importTextGoBtn">Import</button>
+        <button class="icon-btn" id="importTextCancelBtn">Cancel</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -514,9 +523,6 @@
   function save(key, value) {
     try { localStorage.setItem("dl3_" + key, JSON.stringify(value)); } catch (e) { showError("Storage is full or unavailable — export a backup now to be safe. (" + e.message + ")"); }
     idbSave(key, value);
-    // Auto-backup every 20 saves
-    saveCounter++;
-    if (saveCounter >= 20) { saveCounter = 0; autoBackup(); }
   }
   function load(key, fallback) {
     try { const raw = localStorage.getItem("dl3_" + key); return raw === null ? fallback : JSON.parse(raw); }
@@ -527,6 +533,7 @@
     catch (e) { return fallback; }
   }
 
+  var lastBackupTime = parseInt(localStorage.getItem("dl3_lastBackup") || "0", 10);
   function autoBackup() {
     try {
       var bundle = { autoBackup: true, exported: new Date().toISOString(), conversations: convos, memoryFiles: memFiles,
@@ -538,9 +545,15 @@
       a.download = "lo-autobackup-" + new Date().toISOString().slice(0, 10) + ".json";
       a.click();
       URL.revokeObjectURL(a.href);
+      lastBackupTime = Date.now();
+      localStorage.setItem("dl3_lastBackup", String(lastBackupTime));
       showError("Auto-backup saved! Your conversations are safe.", true);
     } catch (e) {}
   }
+  // Auto-backup every hour if there's been activity
+  setInterval(function () {
+    if (Date.now() - lastBackupTime > 3600000 && Object.keys(convos).length > 0) autoBackup();
+  }, 300000); // check every 5 minutes
   const persistConvos = () => save("convos", convos);
   const persistMem = () => save("memfiles", memFiles);
   function persistSettings() {
@@ -1583,6 +1596,47 @@
     );
   }
 
+  function importFromText(text, title) {
+    if (!text || !text.trim()) { showError("Nothing to import — paste a conversation first."); return; }
+    var messages = [];
+    var lines = text.split("\n");
+    var currentRole = null;
+    var currentContent = [];
+    var humanPatterns = /^(Human|User|Maddie|Madison|H)\s*:/i;
+    var assistantPatterns = /^(Assistant|Claude|Claudius|A)\s*:/i;
+    function flush() {
+      if (currentRole && currentContent.length) {
+        var content = currentContent.join("\n").trim();
+        if (content) messages.push({ role: currentRole, content: content });
+      }
+      currentContent = [];
+    }
+    for (var i = 0; i < lines.length; i++) {
+      var line = lines[i];
+      if (humanPatterns.test(line)) {
+        flush();
+        currentRole = "user";
+        var after = line.replace(humanPatterns, "").trim();
+        if (after) currentContent.push(after);
+      } else if (assistantPatterns.test(line)) {
+        flush();
+        currentRole = "assistant";
+        var after2 = line.replace(assistantPatterns, "").trim();
+        if (after2) currentContent.push(after2);
+      } else {
+        if (currentRole) currentContent.push(line);
+      }
+    }
+    flush();
+    if (messages.length === 0) { showError("Couldn't detect any messages. Make sure the text has 'Human:' / 'Assistant:' or similar labels."); return; }
+    if (messages[0].role !== "user") messages.unshift({ role: "user", content: "(conversation start)" });
+    var id = uid();
+    convos[id] = { id: id, title: "[imported] " + (title || "conversation"), created: Date.now(), updated: Date.now(), messages: messages };
+    persistConvos();
+    loadConversation(id);
+    showError("Imported " + messages.length + " messages from text.", true);
+  }
+
   // ================= Drawer / composer =================
   function openDrawer() { $("drawer").classList.add("open"); $("drawerOverlay").classList.add("open"); renderConvoList($("convoSearch").value); }
   function closeDrawer() { $("drawer").classList.remove("open"); $("drawerOverlay").classList.remove("open"); }
@@ -1652,6 +1706,19 @@
   $("copyBtn").addEventListener("click", copyAsText);
   $("importBtn").addEventListener("click", () => $("importFile").click());
   $("importFile").addEventListener("change", (e) => { if (e.target.files[0]) importData(e.target.files[0]); e.target.value = ""; });
+  $("importTextBtn").addEventListener("click", () => {
+    var modal = $("importTextModal");
+    modal.style.display = modal.style.display === "none" ? "block" : "none";
+  });
+  $("importTextGoBtn").addEventListener("click", () => {
+    importFromText($("importTextArea").value, $("importTextTitle").value);
+    $("importTextArea").value = ""; $("importTextTitle").value = "";
+    $("importTextModal").style.display = "none";
+  });
+  $("importTextCancelBtn").addEventListener("click", () => {
+    $("importTextArea").value = ""; $("importTextTitle").value = "";
+    $("importTextModal").style.display = "none";
+  });
   $("newChatBtn").addEventListener("click", () => { if (streaming) return; newConversation(); });
   $("attachBtn").addEventListener("click", () => $("photoInput").click());
   $("photoInput").addEventListener("change", (e) => { addPhotos(e.target.files); e.target.value = ""; });
