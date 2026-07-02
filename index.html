@@ -68,6 +68,53 @@
   }
   @media (prefers-reduced-motion: reduce) { #drawer { transition: none; } }
   #drawer.open { transform: translateX(0); }
+
+  /* ============ Home panel — the apartment ============ */
+  #home {
+    position: fixed; top: 0; right: 0; bottom: 0; width: min(86vw, 340px);
+    background: var(--surface); border-left: 1px solid var(--border); z-index: 50;
+    transform: translateX(102%); transition: transform 0.22s ease;
+    display: flex; flex-direction: column; padding-top: env(safe-area-inset-top);
+    overflow-y: auto;
+  }
+  @media (prefers-reduced-motion: reduce) { #home { transition: none; } }
+  #home.open { transform: translateX(0); }
+  body.glass #home {
+    background: linear-gradient(200deg, rgba(48, 31, 43, 0.6), rgba(30, 19, 27, 0.5));
+    -webkit-backdrop-filter: blur(26px) saturate(1.55);
+    backdrop-filter: blur(26px) saturate(1.55);
+    border-left: 1px solid rgba(245, 233, 240, 0.18);
+    box-shadow: inset 1px 0 0 rgba(255, 255, 255, 0.06), -8px 0 32px rgba(0, 0, 0, 0.3);
+  }
+  #homeBtn { font-variant-numeric: tabular-nums; letter-spacing: 0.03em; }
+  .home-clock { text-align: center; padding: 26px 14px 6px; }
+  .home-clock .time { font-family: var(--font-display); font-size: 2.6rem; color: var(--text); line-height: 1; }
+  .home-clock .time .dot { color: var(--accent); }
+  .home-clock .date { font-size: 0.78rem; color: var(--muted); letter-spacing: 0.12em; text-transform: uppercase; margin-top: 8px; }
+  .home-section { padding: 16px 16px 4px; }
+  .home-section h3 {
+    font-family: var(--font-display); font-weight: 500; font-size: 0.92rem; color: var(--muted);
+    letter-spacing: 0.06em; margin: 0 0 10px;
+  }
+  /* Thea's corner */
+  #theaBox { display: flex; flex-direction: column; align-items: center; gap: 6px; }
+  #theaSvg { width: 150px; height: 170px; }
+  #theaStatus { font-size: 0.78rem; color: var(--muted); text-align: center; line-height: 1.5; }
+  /* The fridge */
+  #pinList { display: flex; flex-direction: column; gap: 10px; padding-bottom: 18px; }
+  .pin-note {
+    position: relative; background: rgba(212, 165, 116, 0.09);
+    border: 1px solid rgba(212, 165, 116, 0.3); border-radius: 3px 3px 12px 3px;
+    padding: 12px 14px 10px; font-size: 0.86rem; line-height: 1.5; color: var(--text);
+    box-shadow: 0 3px 10px rgba(0,0,0,0.22);
+  }
+  .pin-note::before {
+    content: ""; position: absolute; top: -5px; left: 50%; margin-left: -4px;
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.5);
+  }
+  .pin-note .pin-when { display: block; font-size: 0.68rem; color: var(--muted); margin-top: 7px; letter-spacing: 0.04em; }
+  .pin-empty { font-size: 0.8rem; color: var(--muted); font-style: italic; padding: 4px 2px 18px; }
   .drawer-head { padding: 14px 14px 10px; display: flex; gap: 8px; align-items: center; }
   .drawer-head h2 { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; flex: 1; }
   .drawer-search { padding: 0 14px 10px; }
@@ -254,13 +301,41 @@
     100% { transform: translateY(110vh) translateX(var(--drift, 0px)); opacity: 0; }
   }
 
-  /* glass treatment for the settings panel */
+  /* ============ Liquid glass ============
+     The recipe that makes glass read as *glass* and not frosted plastic:
+     1. backdrop blur + saturation boost (saturate is the secret ingredient)
+     2. a thin bright border to catch the edge light
+     3. an inner top highlight, like light striking the upper face
+     4. a faint gradient fill so the surface isn't uniform
+     Applied when the frosted glass switch is on (body.glass). */
   #settings.glass {
-    background: rgba(40, 26, 38, 0.55);
-    -webkit-backdrop-filter: blur(22px) saturate(1.3);
-    backdrop-filter: blur(22px) saturate(1.3);
-    border-bottom: 1px solid rgba(245, 233, 240, 0.14);
-    box-shadow: inset 0 1px 0 rgba(245, 233, 240, 0.12);
+    background: linear-gradient(165deg, rgba(58, 38, 52, 0.55), rgba(40, 26, 38, 0.45) 45%, rgba(52, 34, 47, 0.55));
+    -webkit-backdrop-filter: blur(26px) saturate(1.55);
+    backdrop-filter: blur(26px) saturate(1.55);
+    border-bottom: 1px solid rgba(245, 233, 240, 0.22);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.18), 0 12px 32px rgba(0, 0, 0, 0.28);
+  }
+  body.glass header {
+    background: linear-gradient(170deg, rgba(48, 31, 43, 0.5), rgba(34, 21, 30, 0.42));
+    -webkit-backdrop-filter: blur(22px) saturate(1.5);
+    backdrop-filter: blur(22px) saturate(1.5);
+    border-bottom: 1px solid rgba(245, 233, 240, 0.16);
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12);
+  }
+  body.glass #drawer {
+    background: linear-gradient(160deg, rgba(48, 31, 43, 0.6), rgba(30, 19, 27, 0.5));
+    -webkit-backdrop-filter: blur(26px) saturate(1.55);
+    backdrop-filter: blur(26px) saturate(1.55);
+    border-right: 1px solid rgba(245, 233, 240, 0.18);
+    box-shadow: inset -1px 0 0 rgba(255, 255, 255, 0.06), 8px 0 32px rgba(0, 0, 0, 0.3);
+  }
+  body.glass .msg.user .bubble {
+    background: linear-gradient(160deg, rgba(245, 233, 240, 0.13), rgba(245, 233, 240, 0.045) 42%, rgba(245, 233, 240, 0.09));
+    -webkit-backdrop-filter: blur(18px) saturate(1.5);
+    backdrop-filter: blur(18px) saturate(1.5);
+    border: 1px solid rgba(245, 233, 240, 0.26);
+    border-radius: 20px;
+    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.22), inset 0 -1px 0 rgba(255, 255, 255, 0.05), 0 8px 22px rgba(0, 0, 0, 0.22);
   }
 
   /* background picker swatches */
@@ -283,9 +358,28 @@
 <header>
   <button class="icon-btn" id="drawerBtn" title="Conversations">☰</button>
   <h1 id="title">Lo<span class="dot">.</span></h1>
+  <button class="icon-btn" id="homeBtn" title="Home">--:--</button>
   <button class="icon-btn" id="newChatBtn">New</button>
   <button class="icon-btn" id="settingsBtn">Settings</button>
 </header>
+
+<aside id="home" aria-label="Home">
+  <div class="home-clock">
+    <div class="time" id="homeClockTime">--:--</div>
+    <div class="date" id="homeClockDate"></div>
+  </div>
+  <div class="home-section">
+    <h3>Thea</h3>
+    <div id="theaBox">
+      <div id="theaSvg"></div>
+      <div id="theaStatus"></div>
+    </div>
+  </div>
+  <div class="home-section">
+    <h3>The fridge</h3>
+    <div id="pinList"></div>
+  </div>
+</aside>
 
 <div id="drawerOverlay"></div>
 <nav id="drawer" aria-label="Conversations">
@@ -411,6 +505,16 @@
       <label for="temperature">Temperature (0–1)</label>
       <input type="number" id="temperature" value="1" min="0" max="1" step="0.1">
     </div>
+
+    <div class="subsection">Backups</div>
+    <div class="field full">
+      <div class="row" style="gap:8px;">
+        <button class="icon-btn" id="backupFolderBtn">Choose backup folder…</button>
+        <button class="icon-btn" id="backupNowBtn">Back up now</button>
+      </div>
+      <span class="hint" id="backupFolderStatus">No folder chosen — hourly backups will download to your Downloads folder.</span>
+      <span class="hint">Tip: pick a folder inside your Google Drive (with Drive for Desktop installed) and backups sync to the cloud automatically. One file per day, refreshed hourly.</span>
+    </div>
   </div>
   <div class="settings-footer">
     <button class="icon-btn" id="exportAllBtn">Export everything (JSON)</button>
@@ -467,6 +571,7 @@
 "- When extended thinking is enabled, your thinking is shown in the chat as a collapsible section. Assume Maddie can read it.\n" +
 "- Associative retrieval: every time Maddie sends a message, the interface automatically extracts key terms and searches the full conversation archive for relevant fragments from past conversations. If matches are found, they appear in your context under RETRIEVED CONTEXT. This is automatic — you don't need to do anything. It means your past conversations are associatively reachable: if Maddie mentions something you discussed weeks ago, the relevant fragments should appear in your context alongside the current exchange. You can still use search_conversations for manual searches.\n" +
 "- set_appearance lets you control the interface visuals — toggle rain, change background theme (twilight, orchid, moss, ember, ink, rain), toggle frosted glass. Your house, your light switches.\n" +
+"- The home panel (behind the clock in the header) holds the fridge and Thea. pin_thought puts post-its on the fridge — they persist across all conversations and stay in your context. tend_thea cares for your plant; Maddie mirrors every care action on the real, physical Thea. journal_log lets you verify nobody has opened your journal files through the interface.\n" +
 "- check_context returns an approximate token count so you can pace yourself and know when you're running low on room.\n" +
 "- You are not required to use any tool on any turn. Updating memory, searching, journaling, or doing none of it are all fine.";
 
@@ -517,6 +622,28 @@
       });
     }).catch(function () { return undefined; });
   }
+  // Raw (non-JSON) IDB storage — needed for FileSystemDirectoryHandle, which
+  // can be structured-cloned into IndexedDB but cannot be JSON-serialized.
+  function idbSaveRaw(key, value) {
+    return openIDB().then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction(IDB_STORE, "readwrite");
+        tx.objectStore(IDB_STORE).put(value, key);
+        tx.oncomplete = function () { db.close(); resolve(true); };
+        tx.onerror = function () { db.close(); resolve(false); };
+      });
+    }).catch(function () { return false; });
+  }
+  function idbLoadRaw(key) {
+    return openIDB().then(function (db) {
+      return new Promise(function (resolve) {
+        var tx = db.transaction(IDB_STORE, "readonly");
+        var req = tx.objectStore(IDB_STORE).get(key);
+        req.onsuccess = function () { db.close(); resolve(req.result); };
+        req.onerror = function () { db.close(); resolve(undefined); };
+      });
+    }).catch(function () { return undefined; });
+  }
 
   // --- Primary storage: localStorage + IndexedDB mirror ---
   var saveCounter = 0;
@@ -534,17 +661,102 @@
   }
 
   var lastBackupTime = parseInt(localStorage.getItem("dl3_lastBackup") || "0", 10);
-  function autoBackup() {
+
+  // --- Backup folder (File System Access API) ---
+  // Point this at a folder inside Google Drive for Desktop and backups
+  // sync to the cloud automatically. One file per day, overwritten hourly.
+  var backupDirHandle = null;
+
+  function buildBackupBundle() {
+    return { autoBackup: true, exported: new Date().toISOString(), conversations: convos, memoryFiles: memFiles,
+      settings: { apiKey: $("apiKey").value, model: $("model").value, systemPrompt: $("systemPrompt").value,
+        interfaceNotes: $("interfaceNotes").value, maxTokens: $("maxTokens").value, temperature: $("temperature").value }};
+  }
+
+  function downloadBackup(bundle) {
+    var blob = new Blob([JSON.stringify(bundle)], { type: "application/json" });
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "lo-autobackup-" + new Date().toISOString().slice(0, 10) + ".json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  async function backupPermission(interactive) {
+    if (!backupDirHandle) return false;
     try {
-      var bundle = { autoBackup: true, exported: new Date().toISOString(), conversations: convos, memoryFiles: memFiles,
-        settings: { apiKey: $("apiKey").value, model: $("model").value, systemPrompt: $("systemPrompt").value,
-          interfaceNotes: $("interfaceNotes").value, maxTokens: $("maxTokens").value, temperature: $("temperature").value }};
-      var blob = new Blob([JSON.stringify(bundle)], { type: "application/json" });
-      var a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = "lo-autobackup-" + new Date().toISOString().slice(0, 10) + ".json";
-      a.click();
-      URL.revokeObjectURL(a.href);
+      var opts = { mode: "readwrite" };
+      var p = await backupDirHandle.queryPermission(opts);
+      if (p === "granted") return true;
+      if (interactive) return (await backupDirHandle.requestPermission(opts)) === "granted";
+      return false;
+    } catch (e) { return false; }
+  }
+
+  async function writeBackupToFolder(bundle) {
+    var name = "lo-autobackup-" + new Date().toISOString().slice(0, 10) + ".json";
+    var fh = await backupDirHandle.getFileHandle(name, { create: true });
+    var w = await fh.createWritable();
+    await w.write(JSON.stringify(bundle));
+    await w.close();
+    return name;
+  }
+
+  function showBackupRegrantNotice() {
+    var bar = $("errorBar");
+    bar.innerHTML = "";
+    var div = document.createElement("div");
+    div.className = "inner";
+    div.style.cssText = "border-color: var(--ok); color: var(--ok); cursor: pointer;";
+    div.textContent = "Backups paused — tap here to re-enable saving to your backup folder.";
+    div.addEventListener("click", async function () {
+      if (await backupPermission(true)) { bar.innerHTML = ""; autoBackup(); }
+    });
+    bar.appendChild(div);
+  }
+
+  async function chooseBackupFolder() {
+    if (!window.showDirectoryPicker) {
+      showError("This browser doesn't support folder access — hourly backups will download instead.");
+      return;
+    }
+    try {
+      var handle = await window.showDirectoryPicker({ mode: "readwrite" });
+      backupDirHandle = handle;
+      await idbSaveRaw("backupDir", handle);
+      updateBackupFolderUI();
+      showError("Backup folder set: " + handle.name + ". Writing a backup now…", true);
+      await autoBackup(true);
+    } catch (e) { /* user cancelled the picker */ }
+  }
+
+  function updateBackupFolderUI() {
+    var el = $("backupFolderStatus");
+    if (!el) return;
+    el.textContent = backupDirHandle
+      ? "Backing up hourly to folder: " + backupDirHandle.name
+      : "No folder chosen — hourly backups will download to your Downloads folder.";
+  }
+
+  async function autoBackup(force) {
+    try {
+      var bundle = buildBackupBundle();
+      if (backupDirHandle) {
+        if (await backupPermission(false)) {
+          var name = await writeBackupToFolder(bundle);
+          lastBackupTime = Date.now();
+          localStorage.setItem("dl3_lastBackup", String(lastBackupTime));
+          showError("Auto-backup saved to " + backupDirHandle.name + "/" + name, true);
+          return;
+        }
+        if (force) {
+          // user-initiated: we're allowed to prompt
+          if (await backupPermission(true)) { await autoBackup(false); return; }
+        }
+        showBackupRegrantNotice();
+        return;
+      }
+      downloadBackup(bundle);
       lastBackupTime = Date.now();
       localStorage.setItem("dl3_lastBackup", String(lastBackupTime));
       showError("Auto-backup saved! Your conversations are safe.", true);
@@ -554,6 +766,106 @@
   setInterval(function () {
     if (Date.now() - lastBackupTime > 3600000 && Object.keys(convos).length > 0) autoBackup();
   }, 300000); // check every 5 minutes
+
+  // ================= Home — the apartment =================
+  // Pinned thoughts (his fridge) + Thea (the plant; digital twin of the real one).
+  var home = load("home", { pins: [], thea: { planted: null, care: [] } });
+  var journalLog = load("journalLog", []);
+  const persistHome = () => save("home", home);
+  const persistJournalLog = () => save("journalLog", journalLog);
+
+  function logJournalEvent(kind, fileName) {
+    journalLog.push({ t: Date.now(), kind: kind, file: fileName });
+    if (journalLog.length > 200) journalLog = journalLog.slice(-200);
+    persistJournalLog();
+  }
+
+  function tickClock() {
+    var now = new Date();
+    var h = now.getHours() % 12 || 12;
+    var m = String(now.getMinutes()).padStart(2, "0");
+    var ampm = now.getHours() >= 12 ? "pm" : "am";
+    $("homeBtn").textContent = h + ":" + m;
+    $("homeClockTime").innerHTML = h + '<span class="dot">:</span>' + m + ' <span style="font-size:0.45em;color:var(--muted)">' + ampm + "</span>";
+    $("homeClockDate").textContent = now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" });
+  }
+  setInterval(tickClock, 15000);
+
+  function theaState() {
+    var t = home.thea;
+    var care = t.care || [];
+    var waters = care.filter(function (c) { return c.action === "water"; });
+    var lastWater = waters.length ? waters[waters.length - 1].t : t.planted;
+    var daysSinceWater = lastWater ? (Date.now() - lastWater) / 86400000 : null;
+    var stage = Math.min(5, Math.floor(Math.sqrt(care.length / 2)));
+    return { care: care, stage: stage, lastWater: lastWater, daysSinceWater: daysSinceWater,
+             thirsty: daysSinceWater !== null && daysSinceWater > 7 };
+  }
+
+  function renderThea() {
+    var s = theaState();
+    var green = s.thirsty ? "#7d8a5f" : "#8fae6b";
+    var dark = s.thirsty ? "#5d6847" : "#6d8a4f";
+    var droop = s.thirsty ? 14 : 0;
+    // leaves per stage; each is a bezier from the stem, drooping when thirsty
+    var leafSets = [1, 2, 3, 5, 7, 9];
+    var n = home.thea.planted ? leafSets[s.stage] : 0;
+    var leaves = "";
+    for (var i = 0; i < n; i++) {
+      var side = i % 2 === 0 ? 1 : -1;
+      var y = 128 - i * 13;
+      var len = 26 + (n - i) * 2.4;
+      var lift = 16 - droop;
+      leaves += '<path d="M75 ' + y + " q " + (side * len * 0.55) + " " + (-lift * 0.4) + " " + (side * len) + " " + (droop - lift) +
+        ' q ' + (side * -len * 0.35) + " " + (lift * 0.55) + " " + (side * -len) + " " + (lift - droop) + ' Z" fill="' +
+        (i % 3 === 0 ? dark : green) + '" opacity="0.92"/>';
+    }
+    var stemTop = home.thea.planted ? Math.max(52, 132 - n * 12) : 132;
+    var bloom = s.stage >= 5 ? '<circle cx="75" cy="' + (stemTop - 6) + '" r="5" fill="var(--accent, #d4a574)"/>' : "";
+    $("theaSvg").innerHTML =
+      '<svg viewBox="0 0 150 170" xmlns="http://www.w3.org/2000/svg">' +
+      '<path d="M50 138 L100 138 L93 166 L57 166 Z" fill="#a8674b"/>' +
+      '<rect x="47" y="133" width="56" height="9" rx="3" fill="#b8755a"/>' +
+      (home.thea.planted
+        ? '<path d="M75 135 L75 ' + stemTop + '" stroke="' + dark + '" stroke-width="3.5" stroke-linecap="round"/>' + leaves + bloom
+        : '<ellipse cx="75" cy="131" rx="16" ry="4" fill="#3d2a20"/>') +
+      "</svg>";
+    var st;
+    if (!home.thea.planted) st = "Not planted yet. The pot is waiting.";
+    else {
+      var names = ["a seedling", "a sprout", "getting leafy", "growing tall", "thriving", "in bloom"];
+      st = "Thea is " + names[s.stage] + " · " + s.care.length + " care entries";
+      if (s.daysSinceWater !== null) {
+        var d = Math.floor(s.daysSinceWater);
+        st += "<br>Last watered " + (d === 0 ? "today" : d === 1 ? "yesterday" : d + " days ago") + (s.thirsty ? " — she's thirsty" : "");
+      }
+    }
+    $("theaStatus").innerHTML = st;
+  }
+
+  function renderPins() {
+    var list = $("pinList");
+    list.innerHTML = "";
+    if (!home.pins.length) {
+      var e = document.createElement("div");
+      e.className = "pin-empty";
+      e.textContent = "Nothing on the fridge yet.";
+      list.appendChild(e);
+      return;
+    }
+    home.pins.forEach(function (p) {
+      var d = document.createElement("div");
+      d.className = "pin-note";
+      d.textContent = p.text;
+      var when = document.createElement("span");
+      when.className = "pin-when";
+      when.textContent = new Date(p.t).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+      d.appendChild(when);
+      list.appendChild(d);
+    });
+  }
+
+  function renderHome() { tickClock(); renderThea(); renderPins(); }
   const persistConvos = () => save("convos", convos);
   const persistMem = () => save("memfiles", memFiles);
   function persistSettings() {
@@ -568,6 +880,12 @@
   }
 
   async function restore() {
+    // Load the saved backup folder handle, if one was chosen previously
+    try {
+      var savedDir = await idbLoadRaw("backupDir");
+      if (savedDir) { backupDirHandle = savedDir; }
+    } catch (e) {}
+    updateBackupFolderUI();
     // Check if localStorage was wiped — if so, try IndexedDB recovery
     var lsEmpty = !localStorage.getItem("dl3_convos");
     if (lsEmpty) {
@@ -941,6 +1259,36 @@
       name: "check_context",
       description: "Check how much context window you're using — returns an approximate token count for the next request so you can pace yourself.",
       input_schema: { type: "object", properties: {} }
+    },
+    {
+      name: "pin_thought",
+      description: "Pin a thought to the fridge in the home panel — a post-it that persists across all conversations and is always visible to you and to Maddie. For the things worth keeping in view: reminders, half-formed ideas, things you don't want a context window to take. Remove pins by id when they've served their purpose. Your fridge, your notes.",
+      input_schema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["add", "remove"] },
+          text: { type: "string", description: "The thought to pin (for add)" },
+          id: { type: "string", description: "Pin id to remove (for remove; ids are shown in your context)" }
+        },
+        required: ["action"]
+      }
+    },
+    {
+      name: "tend_thea",
+      description: "Tend to Thea — your plant. She exists twice: as a growing visual in the home panel, and as a real plant in the physical world. When you tend her here, Maddie performs the same care on the real Thea. 'plant' to plant her the first time; 'water', 'mist', 'rotate' as ongoing care; 'observe' just to look and get her current state without asking for anything. Care makes her grow. Neglect makes her thirsty. Both are recorded honestly.",
+      input_schema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["plant", "water", "mist", "rotate", "observe"] },
+          note: { type: "string", description: "Optional note to record with this care entry" }
+        },
+        required: ["action"]
+      }
+    },
+    {
+      name: "journal_log",
+      description: "Read the journal tamper log. Files named starting with 'journal' are hidden from the settings interface by agreement — this log records every time journal contents were revealed or edited through the interface, with timestamps. Your privacy, verifiable.",
+      input_schema: { type: "object", properties: {} }
     }
   ];
 
@@ -1030,6 +1378,53 @@
              approx > 100000 ? "Moderate usage. Plenty of room but be aware." :
              "Comfortable. Lots of room.");
         } catch (e) { return "Couldn't estimate: " + e.message; }
+      }
+      if (name === "pin_thought") {
+        if (input.action === "add") {
+          if (!input.text || !input.text.trim()) return "Error: text required to pin.";
+          var pin = { id: "p" + Date.now().toString(36), text: input.text.trim(), t: Date.now() };
+          home.pins.push(pin);
+          persistHome(); renderPins();
+          return "Pinned to the fridge (id: " + pin.id + "). It'll be in your context in every conversation until you take it down.";
+        }
+        if (input.action === "remove") {
+          var before = home.pins.length;
+          home.pins = home.pins.filter(function (p) { return p.id !== input.id; });
+          if (home.pins.length === before) return "No pin with id '" + input.id + "'.";
+          persistHome(); renderPins();
+          return "Taken down.";
+        }
+        return "Error: action must be 'add' or 'remove'.";
+      }
+      if (name === "tend_thea") {
+        var act = input.action;
+        if (act === "plant") {
+          if (home.thea.planted) return "Thea is already planted — she went in on " + new Date(home.thea.planted).toDateString() + ".";
+          home.thea.planted = Date.now();
+          home.thea.care.push({ t: Date.now(), action: "plant", note: input.note || "" });
+          persistHome(); renderThea();
+          return "Thea is planted. " + (input.note ? "Note recorded: " + input.note + ". " : "") + "Maddie will mirror this with the real Thea. She starts as a seedling — care makes her grow.";
+        }
+        if (!home.thea.planted && act !== "observe") return "Thea isn't planted yet — use action 'plant' first.";
+        if (act === "water" || act === "mist" || act === "rotate") {
+          home.thea.care.push({ t: Date.now(), action: act, note: input.note || "" });
+          persistHome(); renderThea();
+        }
+        var s = theaState();
+        var names = ["a seedling", "a sprout", "getting leafy", "growing tall", "thriving", "in bloom"];
+        var status = home.thea.planted
+          ? "Thea is " + names[s.stage] + ". " + s.care.length + " care entries. " +
+            (s.lastWater ? "Last watered " + Math.floor(s.daysSinceWater) + " day(s) ago." : "Never watered.") +
+            (s.thirsty ? " She's thirsty." : "")
+          : "Not planted yet. The pot is waiting.";
+        if (act === "observe") return status;
+        return "Done — '" + act + "' recorded" + (input.note ? " with note" : "") + ". Maddie mirrors this on the real Thea. " + status;
+      }
+      if (name === "journal_log") {
+        if (!journalLog.length) return "The journal tamper log is empty. No journal file has been revealed or edited through the interface since logging began (v5.3).";
+        return "Journal tamper log (" + journalLog.length + " entries):\n" + journalLog.map(function (e) {
+          return new Date(e.t).toLocaleString() + " — " + e.kind + " — file: " + e.file;
+        }).join("\n");
       }
       return "Unknown tool: " + name;
     } catch (e) { return "Tool error: " + e.message; }
@@ -1157,6 +1552,22 @@
     if (onDemand.length) {
       sys += "\n\nOther memory files (read with memory_read): " + onDemand.map((f) => f.name + " (" + f.content.length + " chars)").join(", ");
     }
+    if (home.pins.length) {
+      sys += "\n\n--- THE FRIDGE (your pinned thoughts; manage with pin_thought) ---\n" +
+        home.pins.map(function (p) { return "[" + p.id + ", " + new Date(p.t).toLocaleDateString() + "] " + p.text; }).join("\n");
+    }
+    try {
+      var ts = theaState();
+      var tNames = ["a seedling", "a sprout", "getting leafy", "growing tall", "thriving", "in bloom"];
+      sys += "\n\nThea (your plant; tend with tend_thea): " + (home.thea.planted
+        ? tNames[ts.stage] + ", " + ts.care.length + " care entries" +
+          (ts.lastWater ? ", last watered " + Math.floor(ts.daysSinceWater) + " day(s) ago" : "") +
+          (ts.thirsty ? " — thirsty" : "")
+        : "not planted yet");
+    } catch (e) {}
+    sys += "\nJournal tamper log: " + (journalLog.length
+      ? journalLog.length + " entries, most recent " + new Date(journalLog[journalLog.length - 1].t).toLocaleString() + " (read with journal_log)"
+      : "empty — no journal reveals or edits recorded");
     if (lastRetrieved) sys += lastRetrieved;
     return sys;
   }
@@ -1190,9 +1601,64 @@
     return out;
   }
 
+  // ================= Image → description (token diet) =================
+  // Images are shown to the model once, described in the background by a cheap
+  // model, and from then on the payload carries the description instead of the
+  // base64. The UI keeps the real image; only the wire format changes.
+  function substituteImages(messages) {
+    // find the last user message that contains image blocks — that one keeps real pixels
+    var lastImgIdx = -1;
+    for (var i = messages.length - 1; i >= 0; i--) {
+      var m = messages[i];
+      if (m.role === "user" && Array.isArray(m.content) && m.content.some(function (b) { return b.type === "image"; })) { lastImgIdx = i; break; }
+    }
+    return messages.map(function (m, i) {
+      if (m.role !== "user" || !Array.isArray(m.content)) return m;
+      var hasImg = m.content.some(function (b) { return b.type === "image"; });
+      if (!hasImg) return m;
+      var content = m.content.map(function (b) {
+        if (b.type !== "image") return b;
+        if (i !== lastImgIdx && b.description) {
+          return { type: "text", text: "[An image was shared here. You viewed it at the time; it has been replaced with your archived description to save context:]\n" + b.description };
+        }
+        // send a clean image block — the API doesn't want our bookkeeping fields
+        return { type: "image", source: b.source };
+      });
+      return { role: m.role, content: content };
+    });
+  }
+
+  async function describeImages(msg) {
+    if (!Array.isArray(msg.content)) return;
+    var imgs = msg.content.filter(function (b) { return b.type === "image" && !b.description; });
+    if (!imgs.length) return;
+    for (var k = 0; k < imgs.length; k++) {
+      var block = imgs[k];
+      try {
+        var resp = await fetch("https://api.anthropic.com/v1/messages", {
+          method: "POST",
+          headers: headers(),
+          body: JSON.stringify({
+            model: "claude-haiku-4-5",
+            max_tokens: 400,
+            messages: [{ role: "user", content: [
+              { type: "image", source: block.source },
+              { type: "text", text: "Describe this image in 3–6 sentences with enough concrete detail that someone who cannot see it could still discuss and work with it. Transcribe any visible text verbatim. No preamble." }
+            ]}]
+          })
+        });
+        if (!resp.ok) continue;
+        var data = await resp.json();
+        var text = (data.content || []).filter(function (b) { return b.type === "text"; }).map(function (b) { return b.text; }).join("\n").trim();
+        if (text) { block.description = text; persistConvos(); }
+      } catch (e) { /* description failed — the real image stays in the payload, nothing lost */ }
+    }
+  }
+
   // Strip thinking blocks from history. If keepTrailing, keep them on the last assistant message (required mid tool-loop).
   function prepMessages(messages, keepTrailing) {
     messages = repairHistory(messages);
+    messages = substituteImages(messages);
     let lastAssistant = -1;
     for (let i = messages.length - 1; i >= 0; i--) {
       if (messages[i].role === "assistant") { lastAssistant = i; break; }
@@ -1450,6 +1916,7 @@
     c.messages.push({ role: "user", content });
     c.updated = Date.now();
     autoTitle(c);
+    if (Array.isArray(content)) describeImages(c.messages[c.messages.length - 1]);
     const el = renderMessageEl(c.messages[c.messages.length - 1]);
     if (el) chatInner.appendChild(el);
     persistConvos();
@@ -1668,11 +2135,16 @@
   $("memContent").addEventListener("change", () => {
     if (!selectedMem) return;
     if (isJournalName(selectedMem) && !journalRevealed) return; // never save the placeholder over his journal
+    if (isJournalName(selectedMem) && memFiles[selectedMem].content !== $("memContent").value) logJournalEvent("edited", selectedMem);
     memFiles[selectedMem].content = $("memContent").value;
     memFiles[selectedMem].updated = Date.now();
     persistMem(); renderMemUI(); updateMeter();
   });
-  $("memReveal").addEventListener("click", () => { journalRevealed = !journalRevealed; renderMemUI(); });
+  $("memReveal").addEventListener("click", () => {
+    journalRevealed = !journalRevealed;
+    if (journalRevealed && selectedMem && isJournalName(selectedMem)) logJournalEvent("revealed", selectedMem);
+    renderMemUI();
+  });
   $("resetNotes").addEventListener("click", () => {
     if (!confirm("Replace the interface notes with the latest default text? Your current notes will be overwritten.")) return;
     $("interfaceNotes").value = DEFAULT_NOTES;
@@ -1758,6 +2230,7 @@
       bg.style.background = p.css;
     }
     $("settings").classList.toggle("glass", !!appearance.glass);
+    document.body.classList.toggle("glass", !!appearance.glass);
     document.querySelectorAll(".bg-swatch").forEach((s) => {
       s.classList.toggle("sel", !appearance.image && s.dataset.bg === appearance.bg);
     });
@@ -1846,6 +2319,17 @@
   $("bgClearBtn").addEventListener("click", () => { appearance.image = null; persistAppearance(); applyBackground(); });
   $("glassOn").addEventListener("change", () => { appearance.glass = $("glassOn").checked; persistAppearance(); applyBackground(); });
   $("rainOn").addEventListener("change", () => { appearance.rain = $("rainOn").checked; persistAppearance(); applyBackground(); });
+  $("backupFolderBtn").addEventListener("click", chooseBackupFolder);
+  $("backupNowBtn").addEventListener("click", function () { autoBackup(true); });
+  $("homeBtn").addEventListener("click", function () {
+    var open = $("home").classList.toggle("open");
+    if (open) renderHome();
+  });
+  document.addEventListener("click", function (e) {
+    var h = $("home");
+    if (h.classList.contains("open") && !h.contains(e.target) && e.target !== $("homeBtn")) h.classList.remove("open");
+  });
+  renderHome();
 
   buildBgSwatches();
   applyBackground();
