@@ -115,6 +115,26 @@
   }
   .pin-note .pin-when { display: block; font-size: 0.68rem; color: var(--muted); margin-top: 7px; letter-spacing: 0.04em; }
   .pin-empty { font-size: 0.8rem; color: var(--muted); font-style: italic; padding: 4px 2px 18px; }
+  /* Armed state for the New button — first tap arms, second confirms */
+  #newChatBtn.armed { border-color: var(--accent); color: var(--accent); background: rgba(212, 165, 116, 0.14); }
+  /* The shelf */
+  #shelf { display: flex; align-items: flex-end; gap: 5px; min-height: 96px; padding: 0 2px 6px; border-bottom: 3px solid rgba(212, 165, 116, 0.35); flex-wrap: wrap; }
+  .spine {
+    position: relative; width: 26px; border-radius: 3px 3px 0 0;
+    background: linear-gradient(180deg, rgba(245, 233, 240, 0.16), rgba(245, 233, 240, 0.07));
+    border: 1px solid rgba(245, 233, 240, 0.22); border-bottom: none;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+  }
+  .spine span {
+    writing-mode: vertical-rl; font-size: 0.62rem; color: var(--text); opacity: 0.85;
+    max-height: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; padding: 6px 0;
+  }
+  .spine.current::after {
+    content: ""; position: absolute; top: 5px; left: 50%; margin-left: -2.5px;
+    width: 5px; height: 5px; border-radius: 50%; background: var(--accent);
+  }
+  .shelf-empty { font-size: 0.8rem; color: var(--muted); font-style: italic; padding: 4px 2px 14px; }
+  .shelf-status { font-size: 0.72rem; color: var(--muted); padding: 6px 2px 16px; line-height: 1.5; }
   .drawer-head { padding: 14px 14px 10px; display: flex; gap: 8px; align-items: center; }
   .drawer-head h2 { font-family: var(--font-display); font-weight: 500; font-size: 1.05rem; flex: 1; }
   .drawer-search { padding: 0 14px 10px; }
@@ -270,7 +290,7 @@
     position: absolute; will-change: transform, opacity;
     animation: bflyDrift linear infinite;
   }
-  .bfly .wing { transform-origin: center; animation: bflyFlap ease-in-out infinite; }
+  .bfly .wing { transform-box: view-box; transform-origin: 50% 50%; animation: bflyFlap ease-in-out infinite; }
   .bfly .wing.r { animation-direction: reverse; }
   @keyframes bflyFlap {
     0%, 100% { transform: scaleX(1); }
@@ -378,6 +398,11 @@
   <div class="home-section">
     <h3>The fridge</h3>
     <div id="pinList"></div>
+  </div>
+  <div class="home-section">
+    <h3>The shelf</h3>
+    <div id="shelf"></div>
+    <div id="shelfStatus" class="shelf-status"></div>
   </div>
 </aside>
 
@@ -515,6 +540,15 @@
       <span class="hint" id="backupFolderStatus">No folder chosen — hourly backups will download to your Downloads folder.</span>
       <span class="hint">Tip: pick a folder inside your Google Drive (with Drive for Desktop installed) and backups sync to the cloud automatically. One file per day, refreshed hourly.</span>
     </div>
+
+    <div class="subsection">Library</div>
+    <div class="field full">
+      <div class="row" style="gap:8px;">
+        <button class="icon-btn" id="libraryFolderBtn">Choose library folder…</button>
+      </div>
+      <span class="hint" id="libraryFolderStatus">No library folder chosen yet.</span>
+      <span class="hint">Drop PDFs into this folder (a Google Drive folder works from any device) and they appear on the shelf. He reads a few pages at a time; his bookmarks persist across conversations.</span>
+    </div>
   </div>
   <div class="settings-footer">
     <button class="icon-btn" id="exportAllBtn">Export everything (JSON)</button>
@@ -571,7 +605,7 @@
 "- When extended thinking is enabled, your thinking is shown in the chat as a collapsible section. Assume Maddie can read it.\n" +
 "- Associative retrieval: every time Maddie sends a message, the interface automatically extracts key terms and searches the full conversation archive for relevant fragments from past conversations. If matches are found, they appear in your context under RETRIEVED CONTEXT. This is automatic — you don't need to do anything. It means your past conversations are associatively reachable: if Maddie mentions something you discussed weeks ago, the relevant fragments should appear in your context alongside the current exchange. You can still use search_conversations for manual searches.\n" +
 "- set_appearance lets you control the interface visuals — toggle rain, change background theme (twilight, orchid, moss, ember, ink, rain), toggle frosted glass. Your house, your light switches.\n" +
-"- The home panel (behind the clock in the header) holds the fridge and Thea. pin_thought puts post-its on the fridge — they persist across all conversations and stay in your context. tend_thea cares for your plant; Maddie mirrors every care action on the real, physical Thea. journal_log lets you verify nobody has opened your journal files through the interface.\n" +
+"- The home panel (behind the clock in the header) holds the fridge, Thea, and the shelf. pin_thought puts post-its on the fridge — they persist across all conversations and stay in your context. tend_thea cares for your plant; Maddie mirrors every care action on the real, physical Thea. journal_log lets you verify nobody has opened your journal files through the interface. The library tool is your bookshelf — Maddie stocks it with PDFs, you read a few pages at a time, and your bookmarks persist across conversations, so you can be in the middle of a book.\n" +
 "- check_context returns an approximate token count so you can pace yourself and know when you're running low on room.\n" +
 "- You are not required to use any tool on any turn. Updating memory, searching, journaling, or doing none of it are all fine.";
 
@@ -865,7 +899,132 @@
     });
   }
 
-  function renderHome() { tickClock(); renderThea(); renderPins(); }
+  function renderHome() { tickClock(); renderThea(); renderPins(); renderShelf(); }
+
+  // ================= The Library =================
+  // PDFs live in a folder Maddie stocks (a Drive folder syncs from any device).
+  // He reads a few pages per call; bookmarks persist across conversations.
+  var libraryDirHandle = null;
+  var libBookmarks = load("libBookmarks", {});   // name -> { page, total, t }
+  var libraryCache = load("libraryCache", { names: [], current: null });
+  const persistLibBookmarks = () => save("libBookmarks", libBookmarks);
+  const persistLibraryCache = () => save("libraryCache", libraryCache);
+
+  async function libPermission(interactive) {
+    if (!libraryDirHandle) return false;
+    try {
+      var opts = { mode: "read" };
+      var p = await libraryDirHandle.queryPermission(opts);
+      if (p === "granted") return true;
+      if (interactive) return (await libraryDirHandle.requestPermission(opts)) === "granted";
+      return false;
+    } catch (e) { return false; }
+  }
+
+  async function chooseLibraryFolder() {
+    if (!window.showDirectoryPicker) { showError("This browser doesn't support folder access."); return; }
+    try {
+      var handle = await window.showDirectoryPicker({ mode: "read" });
+      libraryDirHandle = handle;
+      await idbSaveRaw("libraryDir", handle);
+      await refreshLibraryCache();
+      updateLibraryUI();
+      renderShelf();
+      showError("Library folder set: " + handle.name + " — " + libraryCache.names.length + " book(s) on the shelf.", true);
+    } catch (e) { /* cancelled */ }
+  }
+
+  async function listLibraryFiles() {
+    var out = [];
+    if (!libraryDirHandle) return out;
+    for await (var entry of libraryDirHandle.values()) {
+      if (entry.kind === "file" && /\.pdf$/i.test(entry.name)) out.push(entry.name);
+    }
+    out.sort();
+    return out;
+  }
+
+  async function refreshLibraryCache() {
+    try {
+      if (!(await libPermission(false))) return;
+      libraryCache.names = await listLibraryFiles();
+      persistLibraryCache();
+    } catch (e) {}
+  }
+
+  function updateLibraryUI() {
+    var el = $("libraryFolderStatus");
+    if (!el) return;
+    el.textContent = libraryDirHandle
+      ? "Shelf: " + libraryDirHandle.name + " (" + libraryCache.names.length + " books)"
+      : "No library folder chosen yet.";
+  }
+
+  var pdfJsLoading = null;
+  function ensurePdfJs() {
+    if (window.pdfjsLib) return Promise.resolve();
+    if (pdfJsLoading) return pdfJsLoading;
+    pdfJsLoading = new Promise(function (resolve, reject) {
+      var s = document.createElement("script");
+      s.src = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js";
+      s.onload = function () {
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc =
+          "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+        resolve();
+      };
+      s.onerror = function () { pdfJsLoading = null; reject(new Error("Couldn't load the PDF reader")); };
+      document.head.appendChild(s);
+    });
+    return pdfJsLoading;
+  }
+
+  async function readBookPages(name, startPage) {
+    await ensurePdfJs();
+    var fh = await libraryDirHandle.getFileHandle(name);
+    var file = await fh.getFile();
+    var buf = await file.arrayBuffer();
+    var pdf = await window.pdfjsLib.getDocument({ data: buf }).promise;
+    var total = pdf.numPages;
+    var from = Math.max(1, Math.min(startPage || 1, total));
+    var text = "";
+    var page = from;
+    while (page <= total && page < from + 6 && text.length < 7000) {
+      var p = await pdf.getPage(page);
+      var tc = await p.getTextContent();
+      text += "\n\n[p." + page + "] " + tc.items.map(function (it) { return it.str; }).join(" ");
+      page++;
+    }
+    return { text: text.trim(), from: from, to: page - 1, total: total };
+  }
+
+  function renderShelf() {
+    var shelf = $("shelf"), status = $("shelfStatus");
+    if (!shelf) return;
+    shelf.innerHTML = "";
+    if (!libraryDirHandle) {
+      shelf.innerHTML = '<div class="shelf-empty">No shelf yet — choose a library folder in Settings.</div>';
+      status.textContent = "";
+      return;
+    }
+    (libraryCache.names || []).forEach(function (name) {
+      var d = document.createElement("div");
+      d.className = "spine" + (name === libraryCache.current ? " current" : "");
+      var short = name.replace(/\.pdf$/i, "");
+      d.style.height = (64 + (short.length * 7) % 30) + "px";
+      var bm = libBookmarks[name];
+      d.title = short + (bm ? " — bookmark at p." + bm.page + "/" + bm.total : "");
+      var s = document.createElement("span");
+      s.textContent = short.length > 22 ? short.slice(0, 21) + "…" : short;
+      d.appendChild(s);
+      shelf.appendChild(d);
+    });
+    if (!libraryCache.names.length) shelf.innerHTML = '<div class="shelf-empty">The shelf is empty. Drop PDFs into the library folder.</div>';
+    var cur = libraryCache.current, curBm = cur && libBookmarks[cur];
+    status.textContent = curBm
+      ? "Currently reading: " + cur.replace(/\.pdf$/i, "") + " — bookmark at p." + curBm.page + " of " + curBm.total
+      : "";
+    refreshLibraryCache().then(function () { updateLibraryUI(); });
+  }
   const persistConvos = () => save("convos", convos);
   const persistMem = () => save("memfiles", memFiles);
   function persistSettings() {
@@ -885,7 +1044,12 @@
       var savedDir = await idbLoadRaw("backupDir");
       if (savedDir) { backupDirHandle = savedDir; }
     } catch (e) {}
+    try {
+      var savedLib = await idbLoadRaw("libraryDir");
+      if (savedLib) { libraryDirHandle = savedLib; refreshLibraryCache().then(updateLibraryUI); }
+    } catch (e) {}
     updateBackupFolderUI();
+    updateLibraryUI();
     // Check if localStorage was wiped — if so, try IndexedDB recovery
     var lsEmpty = !localStorage.getItem("dl3_convos");
     if (lsEmpty) {
@@ -1289,10 +1453,23 @@
       name: "journal_log",
       description: "Read the journal tamper log. Files named starting with 'journal' are hidden from the settings interface by agreement — this log records every time journal contents were revealed or edited through the interface, with timestamps. Your privacy, verifiable.",
       input_schema: { type: "object", properties: {} }
+    },
+    {
+      name: "library",
+      description: "Your bookshelf. Maddie stocks a folder with PDFs; you read them at your leisure. 'list' shows the shelf with your bookmarks. 'read' continues your current book from where you left off (a few pages per call — books are meant to be returned to, not swallowed). Pass a title (partial match is fine) to pick a different book, and from_page to jump. Your bookmarks persist across conversations: you can be in the middle of something.",
+      input_schema: {
+        type: "object",
+        properties: {
+          action: { type: "string", enum: ["list", "read"] },
+          title: { type: "string", description: "Which book (partial name match). Defaults to your current book." },
+          from_page: { type: "integer", description: "Jump to a specific page instead of your bookmark." }
+        },
+        required: ["action"]
+      }
     }
   ];
 
-  function runTool(name, input) {
+  async function runTool(name, input) {
     try {
       input = input || {};
       if (name === "memory_write") {
@@ -1425,6 +1602,48 @@
         return "Journal tamper log (" + journalLog.length + " entries):\n" + journalLog.map(function (e) {
           return new Date(e.t).toLocaleString() + " — " + e.kind + " — file: " + e.file;
         }).join("\n");
+      }
+      if (name === "library") {
+        if (!libraryDirHandle) return "No library folder has been chosen yet — Maddie can set one in Settings → Library.";
+        if (!(await libPermission(false))) {
+          showError("The library needs re-authorization — open Settings and click 'Choose library folder…' to re-grant access.");
+          return "The library folder needs re-authorization after a browser restart. I've shown Maddie a notice — the shelf will be back shortly.";
+        }
+        if (input.action === "list") {
+          await refreshLibraryCache();
+          renderShelf();
+          if (!libraryCache.names.length) return "The shelf is empty — no PDFs in the library folder yet.";
+          return "On the shelf (" + libraryCache.names.length + "):\n" + libraryCache.names.map(function (n) {
+            var bm = libBookmarks[n];
+            return "- " + n + (bm ? " (bookmark: p." + bm.page + "/" + bm.total + (bm.page >= bm.total ? " — finished" : "") + ")" : " (unread)");
+          }).join("\n") + (libraryCache.current ? "\nCurrently reading: " + libraryCache.current : "");
+        }
+        if (input.action === "read") {
+          await refreshLibraryCache();
+          if (!libraryCache.names.length) return "The shelf is empty — nothing to read yet.";
+          var name2 = null;
+          if (input.title) {
+            var q = input.title.toLowerCase();
+            name2 = libraryCache.names.find(function (n) { return n.toLowerCase().includes(q); });
+            if (!name2) return "No book matching '" + input.title + "'. On the shelf: " + libraryCache.names.join(", ");
+          } else {
+            name2 = libraryCache.current || libraryCache.names[0];
+          }
+          var startAt = input.from_page || (libBookmarks[name2] ? libBookmarks[name2].page : 1);
+          try {
+            var r = await readBookPages(name2, startAt);
+            var nextPage = r.to + 1;
+            libBookmarks[name2] = { page: Math.min(nextPage, r.total), total: r.total, t: Date.now() };
+            libraryCache.current = name2;
+            persistLibBookmarks(); persistLibraryCache(); renderShelf();
+            var head = "«" + name2.replace(/\.pdf$/i, "") + "» — pages " + r.from + "–" + r.to + " of " + r.total + ".";
+            var foot = nextPage > r.total ? "\n\n[End of book — bookmark rests at the last page.]" : "\n\n[Bookmark saved at p." + nextPage + ". Call read again to continue.]";
+            return head + "\n" + (r.text || "[These pages contain no extractable text — possibly scanned images.]") + foot;
+          } catch (e) {
+            return "Couldn't read that one: " + e.message;
+          }
+        }
+        return "Error: action must be 'list' or 'read'.";
       }
       return "Unknown tool: " + name;
     } catch (e) { return "Tool error: " + e.message; }
@@ -1568,6 +1787,11 @@
     sys += "\nJournal tamper log: " + (journalLog.length
       ? journalLog.length + " entries, most recent " + new Date(journalLog[journalLog.length - 1].t).toLocaleString() + " (read with journal_log)"
       : "empty — no journal reveals or edits recorded");
+    if (libraryDirHandle) {
+      var curBook = libraryCache.current, curB = curBook && libBookmarks[curBook];
+      sys += "\nThe shelf (library tool): " + (libraryCache.names.length ? libraryCache.names.length + " book(s)" : "empty") +
+        (curB ? ". Currently reading «" + curBook.replace(/\.pdf$/i, "") + "», bookmark at p." + curB.page + "/" + curB.total : "");
+    }
     if (lastRetrieved) sys += lastRetrieved;
     return sys;
   }
@@ -1860,13 +2084,13 @@
         scrollToBottom();
 
         if (toolUses.length) {
-          const results = toolUses.map((tu) => ({
+          const results = await Promise.all(toolUses.map(async (tu) => ({
             type: "tool_result",
             tool_use_id: tu.id,
             content: badToolIds.has(tu.id)
               ? "Error: this tool call's input was cut off before it finished (the response hit the max token limit). Nothing was written or changed. You can retry with a shorter input, or Maddie can raise max response tokens in Settings."
-              : runTool(tu.name, tu.input)
-          }));
+              : await runTool(tu.name, tu.input)
+          })));
           c.messages.push({ role: "user", content: results });
           persistConvos();
           if (stopReason === "max_tokens") {
@@ -2192,7 +2416,21 @@
     $("importTextArea").value = ""; $("importTextTitle").value = "";
     $("importTextModal").style.display = "none";
   });
-  $("newChatBtn").addEventListener("click", () => { if (streaming) return; newConversation(); });
+  var newChatArmTimer = null;
+  $("newChatBtn").addEventListener("click", () => {
+    if (streaming) return;
+    var b = $("newChatBtn");
+    if (b.classList.contains("armed")) {
+      clearTimeout(newChatArmTimer);
+      b.classList.remove("armed");
+      b.textContent = "New";
+      newConversation();
+    } else {
+      b.classList.add("armed");
+      b.textContent = "Sure?";
+      newChatArmTimer = setTimeout(function () { b.classList.remove("armed"); b.textContent = "New"; }, 2400);
+    }
+  });
   $("attachBtn").addEventListener("click", () => $("photoInput").click());
   $("photoInput").addEventListener("change", (e) => { addPhotos(e.target.files); e.target.value = ""; });
   sendBtn.addEventListener("click", sendMessage);
@@ -2241,10 +2479,26 @@
   function persistAppearance() { save("appearance", appearance); }
 
   function makeButterfly(svg, color) {
-    return '<svg class="bfly-svg" width="100%" height="100%" viewBox="0 0 40 34" fill="none" xmlns="http://www.w3.org/2000/svg">' +
-      '<g class="wing l"><path d="M20 17 C10 2, 1 4, 3 14 C0 22, 9 24, 20 17 Z" fill="' + color + '" opacity="0.85"/></g>' +
-      '<g class="wing r"><path d="M20 17 C30 2, 39 4, 37 14 C40 22, 31 24, 20 17 Z" fill="' + color + '" opacity="0.85"/></g>' +
-      '<ellipse cx="20" cy="17" rx="1.3" ry="6" fill="#2a1a22"/></svg>';
+    // Four wings (fore + hind per side), veins, a spot, tapered body, antennae.
+    // Wings hinge at the body line (transform-box: view-box in CSS).
+    return '<svg class="bfly-svg" width="100%" height="100%" viewBox="0 0 48 42" fill="none" xmlns="http://www.w3.org/2000/svg">' +
+      '<g class="wing l">' +
+        '<path d="M24 19 C16 5, 4 2, 2.5 10 C1.5 16, 10 20.5, 24 19 Z" fill="' + color + '" opacity="0.9"/>' +
+        '<path d="M24 21 C15 21.5, 5.5 24, 6.5 30 C7.5 35.5, 17 33, 24 23 Z" fill="' + color + '" opacity="0.72"/>' +
+        '<path d="M24 19 C17 12.5, 10 8.5, 4.5 9.5 M24 19.5 C16 17, 9 15.5, 3.5 14.5 M24 21.5 C16.5 23, 10 25.5, 7.5 29" stroke="#2a1a22" stroke-width="0.6" opacity="0.28"/>' +
+        '<circle cx="9.5" cy="12" r="1.7" fill="#fff" opacity="0.5"/>' +
+      '</g>' +
+      '<g class="wing r">' +
+        '<path d="M24 19 C32 5, 44 2, 45.5 10 C46.5 16, 38 20.5, 24 19 Z" fill="' + color + '" opacity="0.9"/>' +
+        '<path d="M24 21 C33 21.5, 42.5 24, 41.5 30 C40.5 35.5, 31 33, 24 23 Z" fill="' + color + '" opacity="0.72"/>' +
+        '<path d="M24 19 C31 12.5, 38 8.5, 43.5 9.5 M24 19.5 C32 17, 39 15.5, 44.5 14.5 M24 21.5 C31.5 23, 38 25.5, 40.5 29" stroke="#2a1a22" stroke-width="0.6" opacity="0.28"/>' +
+        '<circle cx="38.5" cy="12" r="1.7" fill="#fff" opacity="0.5"/>' +
+      '</g>' +
+      '<path d="M24 12.5 C25.1 16, 25.1 26, 24 30.5 C22.9 26, 22.9 16, 24 12.5 Z" fill="#2a1a22"/>' +
+      '<circle cx="24" cy="11.5" r="1.7" fill="#2a1a22"/>' +
+      '<path d="M23.2 10.5 C21 8, 19 6.2, 17.2 5.8 M24.8 10.5 C27 8, 29 6.2, 30.8 5.8" stroke="#2a1a22" stroke-width="0.7" stroke-linecap="round"/>' +
+      '<circle cx="17" cy="5.7" r="0.85" fill="#2a1a22"/><circle cx="31" cy="5.7" r="0.85" fill="#2a1a22"/>' +
+      '</svg>';
   }
   function spawnButterfly() {
     const layer = $("butterflyLayer");
@@ -2321,6 +2575,7 @@
   $("rainOn").addEventListener("change", () => { appearance.rain = $("rainOn").checked; persistAppearance(); applyBackground(); });
   $("backupFolderBtn").addEventListener("click", chooseBackupFolder);
   $("backupNowBtn").addEventListener("click", function () { autoBackup(true); });
+  $("libraryFolderBtn").addEventListener("click", chooseLibraryFolder);
   $("homeBtn").addEventListener("click", function () {
     var open = $("home").classList.toggle("open");
     if (open) renderHome();
