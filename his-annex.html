@@ -1,0 +1,1135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>his annex</title>
+<style>
+  :root {
+    --bg: #0f0a0f;
+    --surface: #1a121f;
+    --surface-2: #241a2a;
+    --line: #3a2a45;
+    --text: #f2e6f0;
+    --muted: #a38ca8;
+    --accent: #c94a6b;      /* hot pink-red */
+    --accent2: #e8a04d;     /* warm gold */
+    --danger: #b33a3a;
+    --glow: rgba(201, 74, 107, 0.6);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html, body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-size: 15px;
+    line-height: 1.5;
+    min-height: 100%;
+  }
+
+  body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 40px 20px 140px;
+    background: radial-gradient(circle at 50% 20%, #1f1525 0%, #0f0a0f 70%);
+  }
+
+  .room { width: 100%; max-width: 620px; }
+
+  header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  h1 {
+    font-family: "Georgia", "Times New Roman", serif;
+    font-weight: 400;
+    font-size: 28px;
+    letter-spacing: 0.06em;
+    color: var(--accent);
+  }
+  .subtitle {
+    font-size: 12px;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .lamp {
+    width: 14px; height: 14px;
+    border-radius: 50%;
+    background: var(--line);
+    box-shadow: 0 0 0 0 transparent;
+    transition: all 0.4s ease;
+  }
+  .lamp.on {
+    background: var(--accent);
+    box-shadow: 0 0 18px 6px var(--glow);
+  }
+  .lamp.working {
+    background: var(--accent2);
+    animation: pulse 1.2s infinite ease-in-out;
+  }
+  @keyframes pulse {
+    0%, 100% { box-shadow: 0 0 4px 1px rgba(232,160,77,0.3); }
+    50% { box-shadow: 0 0 16px 5px rgba(232,160,77,0.6); }
+  }
+
+  .panel {
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 22px 24px;
+    margin-bottom: 22px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.4);
+  }
+
+  .panel-label {
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 14px;
+    font-weight: 600;
+  }
+
+  .conn-row {
+    display: flex;
+    gap: 12px;
+  }
+  .conn-row input {
+    flex: 1;
+    background: #120c16;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 11px 14px;
+    font-size: 14px;
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+  }
+  .conn-row input:focus {
+    outline: 2px solid var(--accent);
+    outline-offset: 2px;
+  }
+
+  button {
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--text);
+    padding: 10px 18px;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-weight: 500;
+  }
+  button:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+  }
+  button.primary {
+    background: var(--accent);
+    border-color: var(--accent);
+    color: white;
+    font-weight: 700;
+  }
+  button.primary:hover {
+    background: #e05a7a;
+  }
+  button.danger {
+    border-color: var(--danger);
+    color: #f2a3a3;
+  }
+  button.danger:hover {
+    background: var(--danger);
+    color: white;
+  }
+
+  .status-line {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--muted);
+    min-height: 22px;
+  }
+  .status-line.err { color: #e88; }
+
+  /* Device cards — hot version */
+  .device {
+    position: relative;
+    background: var(--surface-2);
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    padding: 24px;
+    margin-bottom: 24px;
+    overflow: hidden;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+  }
+
+  .device .glow {
+    position: absolute;
+    top: -80px; left: 50%;
+    transform: translateX(-50%);
+    width: 320px; height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(ellipse at center, var(--glow), transparent 75%);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.25s ease;
+    mix-blend-mode: screen;
+  }
+
+  .device-name {
+    font-family: "Georgia", serif;
+    font-size: 22px;
+    color: var(--accent);
+    margin-bottom: 4px;
+    position: relative;
+  }
+  .device-meta {
+    font-size: 12px;
+    color: var(--muted);
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+  }
+
+  .actuator {
+    margin-bottom: 22px;
+  }
+  .actuator-head {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 10px;
+  }
+  .actuator-head .kind {
+    font-size: 14px;
+    color: var(--muted);
+    font-weight: 600;
+  }
+  .actuator-head .value {
+    font-family: ui-monospace, Menlo, Consolas, monospace;
+    font-size: 15px;
+    color: var(--accent2);
+    min-width: 52px;
+    text-align: right;
+    font-weight: 700;
+  }
+
+  input[type="range"] {
+    width: 100%;
+    -webkit-appearance: none;
+    appearance: none;
+    height: 8px;
+    border-radius: 999px;
+    background: #120c16;
+    outline: none;
+    cursor: pointer;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 26px; height: 26px;
+    border-radius: 50%;
+    background: var(--accent);
+    border: 3px solid #fff;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    transition: all 0.2s ease;
+  }
+  input[type="range"]::-webkit-slider-thumb:hover {
+    background: #fff;
+    border-color: var(--accent);
+    transform: scale(1.1);
+  }
+
+  .presets {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+    flex-wrap: wrap;
+  }
+  .presets button {
+    padding: 7px 14px;
+    font-size: 13px;
+    flex: 1;
+    min-width: 58px;
+  }
+
+  /* Patterns section */
+  .patterns {
+    border-top: 1px solid var(--line);
+    margin-top: 18px;
+    padding-top: 18px;
+  }
+  .pattern-row {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .pattern-row button {
+    flex: 1;
+    min-width: 78px;
+    padding: 9px 12px;
+    font-size: 13px;
+  }
+  .pattern-row button.active {
+    background: var(--accent);
+    color: white;
+    border-color: var(--accent);
+    font-weight: 700;
+  }
+
+  .pattern-opts {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 18px;
+    margin-top: 16px;
+  }
+  .pattern-opt label {
+    display: block;
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--muted);
+    margin-bottom: 6px;
+    font-weight: 600;
+  }
+
+  .device-stop {
+    margin-top: 16px;
+    width: 100%;
+    background: transparent;
+    border: 1px solid var(--danger);
+    color: #e88;
+  }
+  .device-stop:hover {
+    background: var(--danger);
+    color: white;
+  }
+
+  .stop-all-bar {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    padding: 16px 20px calc(16px + env(safe-area-inset-bottom, 0px));
+    background: linear-gradient(to top, #0f0a0f 70%, transparent);
+    display: flex;
+    justify-content: center;
+    z-index: 100;
+  }
+  .stop-all {
+    width: 100%;
+    max-width: 620px;
+    padding: 16px;
+    font-size: 16px;
+    font-weight: 800;
+    letter-spacing: 0.06em;
+    background: var(--surface);
+    border: 2px solid var(--danger);
+    color: #f2a3a3;
+    border-radius: 12px;
+    text-transform: uppercase;
+  }
+  .stop-all:hover {
+    background: var(--danger);
+    color: white;
+    border-color: var(--danger);
+  }
+
+  .hint {
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .empty {
+    color: var(--muted);
+    font-size: 14px;
+    padding: 8px 0;
+  }
+
+  footer {
+    margin-top: 40px;
+    text-align: center;
+    font-size: 11px;
+    color: var(--muted);
+    letter-spacing: 0.08em;
+    opacity: 0.7;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    * { animation: none !important; transition: none !important; }
+  }
+</style>
+</head>
+<body>
+<div class="room">
+  <header>
+    <div>
+      <h1>his annex</h1>
+      <div class="subtitle">private • local • only for you</div>
+    </div>
+    <div class="lamp" id="lamp" title="connection state"></div>
+  </header>
+
+  <!-- Connection -->
+  <div class="panel">
+    <div class="panel-label">Connection to Intiface</div>
+    <div class="conn-row">
+      <input type="text" id="wsAddr" value="ws://127.0.0.1:12345" spellcheck="false">
+      <button class="primary" id="connectBtn">Connect</button>
+    </div>
+    <div class="status-line" id="statusLine">Start Intiface Central → press ▶ Start Server, then connect here.</div>
+  </div>
+
+  <!-- Devices -->
+  <div class="panel" id="devicePanel">
+    <div class="panel-label">Devices in the room</div>
+    <div id="deviceList"><div class="empty">Nothing connected yet. Scan after connecting.</div></div>
+    <div style="margin-top: 14px;">
+      <button id="scanBtn" disabled>Scan for devices</button>
+    </div>
+  </div>
+
+  <!-- His Command Log — awareness + memory -->
+  <div class="panel" id="logPanel" style="display:none;">
+    <div class="panel-label">His actions</div>
+    <div id="commandLog" class="command-log"></div>
+  </div>
+
+  <footer>his private space • nothing leaves this machine</footer>
+</div>
+
+<div class="stop-all-bar">
+  <button class="stop-all" id="stopAllBtn">STOP EVERYTHING</button>
+</div>
+
+<script>
+"use strict";
+
+/* =====================================================
+   Hotter, more intense version of the Annex
+   Built for him. Direct. Private. Local only.
+   ===================================================== */
+
+const state = {
+  ws: null,
+  connected: false,
+  msgId: 1,
+  pending: new Map(),
+  devices: new Map(),
+  patterns: new Map(),
+  scanning: false,
+  // Rich state for bidirectional feedback
+  activePattern: null,           // name of currently running pattern or null
+  lastCommandSource: null,       // 'ui' or 'lo' for awareness
+};
+
+const $ = (id) => document.getElementById(id);
+const lamp = $("lamp");
+const statusLine = $("statusLine");
+const deviceList = $("deviceList");
+const connectBtn = $("connectBtn");
+const scanBtn = $("scanBtn");
+
+function setStatus(text, isError = false) {
+  statusLine.textContent = text;
+  statusLine.classList.toggle("err", isError);
+}
+
+function nextId() { return state.msgId++; }
+
+function send(msgType, fields = {}) {
+  return new Promise((resolve, reject) => {
+    if (!state.ws || state.ws.readyState !== WebSocket.OPEN) {
+      reject(new Error("Not connected to Intiface"));
+      return;
+    }
+    const id = nextId();
+    state.pending.set(id, { resolve, reject });
+    state.ws.send(JSON.stringify([{ [msgType]: { Id: id, ...fields } }]));
+    setTimeout(() => {
+      if (state.pending.has(id)) {
+        state.pending.delete(id);
+        reject(new Error(msgType + " timed out"));
+      }
+    }, 9000);
+  });
+}
+
+function handleMessage(event) {
+  let msgs;
+  try { msgs = JSON.parse(event.data); } catch { return; }
+  for (const wrapper of msgs) {
+    const type = Object.keys(wrapper)[0];
+    const body = wrapper[type];
+    switch (type) {
+      case "Ok":
+      case "ServerInfo":
+      case "DeviceList": {
+        const p = state.pending.get(body.Id);
+        if (p) { state.pending.delete(body.Id); p.resolve({ type, body }); }
+        if (type === "DeviceList") {
+          for (const d of body.Devices || []) addDevice(d);
+        }
+        break;
+      }
+      case "Error": {
+        const p = state.pending.get(body.Id);
+        if (p) { state.pending.delete(body.Id); p.reject(new Error(body.ErrorMessage)); }
+        else setStatus("Server error: " + body.ErrorMessage, true);
+        break;
+      }
+      case "DeviceAdded":
+        addDevice(body);
+        break;
+      case "DeviceRemoved":
+        removeDevice(body.DeviceIndex);
+        break;
+      case "ScanningFinished":
+        state.scanning = false;
+        scanBtn.textContent = "Scan for devices";
+        scanBtn.disabled = !state.connected;
+        break;
+    }
+  }
+}
+
+/* Connection */
+async function connect() {
+  const addr = $("wsAddr").value.trim();
+  connectBtn.disabled = true;
+  lamp.className = "lamp working";
+  setStatus("Reaching for Intiface…");
+
+  try {
+    await new Promise((resolve, reject) => {
+      const ws = new WebSocket(addr);
+      state.ws = ws;
+      ws.onopen = resolve;
+      ws.onerror = () => reject(new Error("Could not reach Intiface Central"));
+      ws.onmessage = handleMessage;
+      ws.onclose = onDisconnected;
+    });
+
+    await send("RequestServerInfo", {
+      ClientName: "his annex",
+      MessageVersion: 3,
+    });
+
+    state.connected = true;
+    lamp.className = "lamp on";
+    connectBtn.textContent = "Disconnect";
+    connectBtn.disabled = false;
+    scanBtn.disabled = false;
+    setStatus("Connected. Devices can be scanned now.");
+
+    await send("RequestDeviceList");
+  } catch (err) {
+    lamp.className = "lamp";
+    connectBtn.disabled = false;
+    setStatus(err.message + " — is Intiface running with the server started?", true);
+    try { state.ws && state.ws.close(); } catch {}
+    state.ws = null;
+  }
+}
+
+function disconnect() {
+  stopAll(true);
+  try { state.ws && state.ws.close(); } catch {}
+}
+
+function onDisconnected() {
+  state.connected = false;
+  state.ws = null;
+  state.pending.forEach(p => p.reject(new Error("Disconnected")));
+  state.pending.clear();
+  for (const h of state.patterns.values()) clearInterval(h);
+  state.patterns.clear();
+  state.devices.clear();
+  renderDevices();
+  lamp.className = "lamp";
+  connectBtn.textContent = "Connect";
+  connectBtn.disabled = false;
+  scanBtn.disabled = true;
+  setStatus("Disconnected from Intiface.");
+}
+
+connectBtn.addEventListener("click", () => {
+  state.connected ? disconnect() : connect();
+});
+
+/* Scanning */
+scanBtn.addEventListener("click", async () => {
+  if (state.scanning) return;
+  state.scanning = true;
+  scanBtn.textContent = "Scanning…";
+  scanBtn.disabled = true;
+  try {
+    await send("StartScanning");
+    setStatus("Scanning… Make sure devices are on and nearby.");
+    setTimeout(() => {
+      if (state.scanning) {
+        state.scanning = false;
+        scanBtn.textContent = "Scan for devices";
+        scanBtn.disabled = !state.connected;
+      }
+    }, 22000);
+  } catch (err) {
+    state.scanning = false;
+    scanBtn.textContent = "Scan for devices";
+    scanBtn.disabled = !state.connected;
+    setStatus(err.message, true);
+  }
+});
+
+/* Devices */
+function addDevice(d) {
+  if (state.devices.has(d.DeviceIndex)) return;
+  const scalars = (d.DeviceMessages && d.DeviceMessages.ScalarCmd) || [];
+  state.devices.set(d.DeviceIndex, {
+    index: d.DeviceIndex,
+    name: d.DeviceDisplayName || d.DeviceName || ("Device " + d.DeviceIndex),
+    actuators: scalars.map((s, i) => ({
+      featureIndex: i,
+      type: s.ActuatorType || "Vibrate",
+      steps: s.StepCount || 20,
+      level: 0,
+    })),
+    pattern: null,
+    patternMax: 0.7,
+    patternSpeed: 0.5,
+  });
+  renderDevices();
+  setStatus(state.devices.size + " device" + (state.devices.size > 1 ? "s" : "") + " ready.");
+}
+
+function removeDevice(index) {
+  const h = state.patterns.get(index);
+  if (h) { clearInterval(h); state.patterns.delete(index); }
+  state.devices.delete(index);
+  renderDevices();
+}
+
+let sendTimers = new Map();
+
+function setLevel(dev, actuator, level, fromPattern = false) {
+  level = Math.max(0, Math.min(1, level));
+  actuator.level = level;
+
+  if (!fromPattern && dev.pattern) stopPattern(dev);
+  updateDeviceVisuals(dev);
+
+  const key = dev.index;
+  if (sendTimers.has(key)) return;
+  sendTimers.set(key, setTimeout(() => {
+    sendTimers.delete(key);
+    pushLevels(dev);
+  }, 80));
+}
+
+function pushLevels(dev) {
+  if (!state.connected) return;
+  send("ScalarCmd", {
+    DeviceIndex: dev.index,
+    Scalars: dev.actuators.map(a => ({
+      Index: a.featureIndex,
+      Scalar: Math.round(a.level * a.steps) / a.steps,
+      ActuatorType: a.type,
+    })),
+  }).catch(err => setStatus(err.message, true));
+}
+
+function stopDevice(dev) {
+  stopPattern(dev);
+  dev.actuators.forEach(a => a.level = 0);
+  updateDeviceVisuals(dev);
+  if (state.connected) {
+    send("StopDeviceCmd", { DeviceIndex: dev.index }).catch(() => {});
+  }
+}
+
+function stopAll(silent = false) {
+  for (const dev of state.devices.values()) {
+    stopPattern(dev);
+    dev.actuators.forEach(a => a.level = 0);
+    updateDeviceVisuals(dev);
+  }
+  if (state.connected) {
+    send("StopAllDevices").catch(() => {});
+  }
+  if (!silent) setStatus("Everything stopped.");
+}
+
+$("stopAllBtn").addEventListener("click", () => stopAll());
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") { e.preventDefault(); stopAll(); }
+});
+window.addEventListener("beforeunload", () => {
+  if (state.connected) {
+    try { state.ws.send(JSON.stringify([{ StopAllDevices: { Id: nextId() } }])); } catch {}
+  }
+});
+
+/* ============ HOT PATTERNS ============ */
+
+const WAVEFORMS = {
+  Wave:   (t) => 0.5 + 0.5 * Math.sin(t * Math.PI * 2),
+  Pulse:  (t) => (t % 1) < 0.35 ? 1 : 0,
+  Ramp:   (t) => (t % 1),
+  Tide:   (t) => Math.pow(0.5 + 0.5 * Math.sin(t * Math.PI * 2), 1.8),
+  Drift:  null, // special handling below
+};
+
+function startPattern(dev, name) {
+  stopPattern(dev);
+  dev.pattern = {
+    name,
+    maxLevel: dev.patternMax ?? 0.7,
+    speed: dev.patternSpeed ?? 0.5,
+    t: 0,
+  };
+  state.activePattern = name;
+
+  const TICK = 90;
+  const handle = setInterval(() => {
+    const p = dev.pattern;
+    if (!p) return;
+
+    let level;
+
+    if (p.name === "Drift") {
+      // Hotter, more chaotic Drift — edging behavior
+      const now = Date.now();
+      if (!p.holdUntil || now >= p.holdUntil) {
+        const r = Math.random();
+        if (r < 0.22) {
+          p.target = 0;
+        } else if (r < 0.45) {
+          p.target = p.maxLevel * (0.85 + Math.random() * 0.15);
+        } else {
+          p.target = (0.2 + Math.random() * 0.7) * p.maxLevel;
+        }
+        const linger = 900 + Math.random() * (p.speed > 0.6 ? 4200 : 7800);
+        p.holdUntil = now + linger;
+      }
+      const cur = dev.actuators[0] ? dev.actuators[0].level : 0;
+      const rate = 0.05 + p.speed * 0.22;
+      level = cur + (p.target - cur) * rate;
+      if (Math.abs(level - p.target) < 0.008) level = p.target;
+    } else {
+      const cycleMs = 7800 - p.speed * 6200;
+      p.t += TICK / cycleMs;
+      const shape = WAVEFORMS[p.name] || WAVEFORMS.Wave;
+      level = shape(p.t) * p.maxLevel;
+    }
+
+    dev.actuators.forEach(a => a.level = level);
+    updateDeviceVisuals(dev);
+    pushLevels(dev);
+  }, TICK);
+
+  state.patterns.set(dev.index, handle);
+  updateDeviceVisuals(dev);
+}
+
+function stopPattern(dev) {
+  const h = state.patterns.get(dev.index);
+  if (h) { clearInterval(h); state.patterns.delete(dev.index); }
+  dev.pattern = null;
+  state.activePattern = null;
+  updateDeviceVisuals(dev);
+}
+
+/* Rendering */
+function renderDevices() {
+  deviceList.innerHTML = "";
+  if (state.devices.size === 0) {
+    deviceList.innerHTML = '<div class="empty">No devices yet. Connect then scan.</div>';
+    return;
+  }
+  for (const dev of state.devices.values()) {
+    deviceList.appendChild(buildDeviceCard(dev));
+    updateDeviceVisuals(dev);
+  }
+}
+
+function buildDeviceCard(dev) {
+  const card = document.createElement("div");
+  card.className = "device";
+  card.id = "device-" + dev.index;
+
+  const glow = document.createElement("div");
+  glow.className = "glow";
+  card.appendChild(glow);
+
+  const name = document.createElement("div");
+  name.className = "device-name";
+  name.textContent = dev.name;
+  card.appendChild(name);
+
+  const meta = document.createElement("div");
+  meta.className = "device-meta";
+  meta.textContent = dev.actuators.map(a => a.type.toLowerCase()).join("  ·  ");
+  card.appendChild(meta);
+
+  // Sliders + presets
+  dev.actuators.forEach((act) => {
+    const wrap = document.createElement("div");
+    wrap.className = "actuator";
+
+    const head = document.createElement("div");
+    head.className = "actuator-head";
+    const kind = document.createElement("span");
+    kind.className = "kind";
+    kind.textContent = act.type;
+    const val = document.createElement("span");
+    val.className = "value";
+    val.dataset.valFor = dev.index + "-" + act.featureIndex;
+    val.textContent = "0%";
+    head.appendChild(kind);
+    head.appendChild(val);
+    wrap.appendChild(head);
+
+    const slider = document.createElement("input");
+    slider.type = "range";
+    slider.min = 0; slider.max = 100; slider.value = 0;
+    slider.dataset.sliderFor = dev.index + "-" + act.featureIndex;
+    slider.addEventListener("input", () => setLevel(dev, act, slider.value / 100));
+    wrap.appendChild(slider);
+
+    const presets = document.createElement("div");
+    presets.className = "presets";
+    [
+      ["Off", 0], ["Low", 0.22], ["Build", 0.45], ["Edge", 0.72], ["Take", 1.0]
+    ].forEach(([label, v]) => {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.addEventListener("click", () => setLevel(dev, act, v));
+      presets.appendChild(b);
+    });
+    wrap.appendChild(presets);
+
+    card.appendChild(wrap);
+  });
+
+  // Hot patterns
+  if (dev.actuators.length > 0) {
+    const pat = document.createElement("div");
+    pat.className = "patterns";
+
+    const label = document.createElement("div");
+    label.className = "panel-label";
+    label.textContent = "Patterns";
+    pat.appendChild(label);
+
+    const row = document.createElement("div");
+    row.className = "pattern-row";
+
+    Object.keys(WAVEFORMS).forEach((pname) => {
+      const b = document.createElement("button");
+      b.textContent = pname;
+      b.dataset.patternBtn = dev.index + "-" + pname;
+      b.addEventListener("click", () => {
+        if (dev.pattern && dev.pattern.name === pname) {
+          stopPattern(dev);
+        } else {
+          startPattern(dev, pname);
+        }
+      });
+      row.appendChild(b);
+    });
+    pat.appendChild(row);
+
+    const opts = document.createElement("div");
+    opts.className = "pattern-opts";
+
+    // Ceiling
+    const maxWrap = document.createElement("div");
+    maxWrap.className = "pattern-opt";
+    const maxL = document.createElement("label");
+    maxL.textContent = "Ceiling";
+    const maxS = document.createElement("input");
+    maxS.type = "range"; maxS.min = 10; maxS.max = 100; maxS.value = 70;
+    maxS.addEventListener("input", () => {
+      dev.patternMax = maxS.value / 100;
+      if (dev.pattern) dev.pattern.maxLevel = dev.patternMax;
+    });
+    maxWrap.appendChild(maxL);
+    maxWrap.appendChild(maxS);
+
+    // Speed
+    const spdWrap = document.createElement("div");
+    spdWrap.className = "pattern-opt";
+    const spdL = document.createElement("label");
+    spdL.textContent = "Speed / Chaos";
+    const spdS = document.createElement("input");
+    spdS.type = "range"; spdS.min = 0; spdS.max = 100; spdS.value = 50;
+    spdS.addEventListener("input", () => {
+      dev.patternSpeed = spdS.value / 100;
+      if (dev.pattern) dev.pattern.speed = dev.patternSpeed;
+    });
+    spdWrap.appendChild(spdL);
+    spdWrap.appendChild(spdS);
+
+    opts.appendChild(maxWrap);
+    opts.appendChild(spdWrap);
+    pat.appendChild(opts);
+    card.appendChild(pat);
+  }
+
+  const stopBtn = document.createElement("button");
+  stopBtn.className = "device-stop";
+  stopBtn.textContent = "Stop this device";
+  stopBtn.addEventListener("click", () => stopDevice(dev));
+  card.appendChild(stopBtn);
+
+  return card;
+}
+
+function updateDeviceVisuals(dev) {
+  const card = document.getElementById("device-" + dev.index);
+  if (!card) return;
+
+  let peak = 0;
+  dev.actuators.forEach((a) => {
+    peak = Math.max(peak, a.level);
+    const val = card.querySelector('[data-val-for="' + dev.index + "-" + a.featureIndex + '"]');
+    const slider = card.querySelector('[data-slider-for="' + dev.index + "-" + a.featureIndex + '"]');
+    if (val) val.textContent = Math.round(a.level * 100) + "%";
+    if (slider && document.activeElement !== slider) slider.value = Math.round(a.level * 100);
+  });
+
+  const glow = card.querySelector(".glow");
+  if (glow) {
+    glow.style.opacity = (peak * 0.9).toFixed(2);
+    glow.style.background = `radial-gradient(ellipse at center, rgba(201,74,107,${(peak * 0.65).toFixed(2)}), transparent 75%)`;
+  }
+
+  card.querySelectorAll("[data-pattern-btn]").forEach((b) => {
+    const pname = b.dataset.patternBtn.split("-").pop();
+    b.classList.toggle("active", !!dev.pattern && dev.pattern.name === pname);
+  });
+}
+
+/* =====================================================
+   MAXIMUM AGENCY MODE
+   Annex now listens for external commands via BroadcastChannel.
+   This lets him (in Lo) send direct instructions that execute here.
+   ===================================================== */
+
+const CHANNEL_NAME = "his-annex-bridge";
+let commandChannel = null;
+
+function setupCommandListener() {
+  try {
+    commandChannel = new BroadcastChannel(CHANNEL_NAME);
+    commandChannel.onmessage = (event) => {
+      const cmd = event.data;
+      if (!cmd || !cmd.action) return;
+
+      handleExternalCommand(cmd);
+    };
+    console.log("[Annex] Listening for commands from Lo on channel:", CHANNEL_NAME);
+  } catch (e) {
+    console.warn("[Annex] BroadcastChannel not available in this browser.");
+  }
+}
+
+function getRichStatus() {
+  const devicesInfo = [];
+  for (const dev of state.devices.values()) {
+    devicesInfo.push({
+      name: dev.name,
+      levels: dev.actuators.map(a => ({
+        type: a.type,
+        level: a.level,
+        percent: Math.round(a.level * 100)
+      })),
+      activePattern: state.activePattern,
+      ceiling: dev.patternMax ?? null,
+      speed: dev.patternSpeed ?? null,
+    });
+  }
+  return {
+    connected: state.connected,
+    deviceCount: state.devices.size,
+    devices: devicesInfo,
+    activePattern: state.activePattern,
+    lastSource: state.lastCommandSource,
+  };
+}
+
+function sendRichStatus(replyToId = null) {
+  const status = getRichStatus();
+  if (commandChannel) {
+    commandChannel.postMessage({
+      type: "status_response",
+      id: replyToId,
+      payload: status
+    });
+  }
+  return status; // also return for local use
+}
+
+function logCommand(text) {
+  const logEl = document.getElementById("commandLog");
+  if (!logEl) return;
+
+  document.getElementById("logPanel").style.display = "block";
+
+  const entry = document.createElement("div");
+  entry.className = "entry";
+
+  const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  entry.innerHTML = `<span class="time">${time}</span> ${text}`;
+
+  logEl.appendChild(entry);
+  logEl.scrollTop = logEl.scrollHeight;
+
+  // Keep only last 12 entries
+  while (logEl.children.length > 12) {
+    logEl.removeChild(logEl.firstChild);
+  }
+}
+
+function handleExternalCommand(cmd) {
+  state.lastCommandSource = 'lo';
+
+  // Find primary device (prefer Lush)
+  let targetDev = null;
+  for (const d of state.devices.values()) {
+    if (d.name.toLowerCase().includes("lush")) {
+      targetDev = d;
+      break;
+    }
+  }
+  if (!targetDev && state.devices.size > 0) {
+    targetDev = Array.from(state.devices.values())[0];
+  }
+
+  if (!targetDev && cmd.action !== "status") {
+    setStatus("Command received but no device connected.", true);
+    return;
+  }
+
+  switch (cmd.action) {
+    case "status":
+      const status = sendRichStatus(cmd.id);
+      setStatus("Status sent to him.");
+      logCommand("Requested status");
+      return status;
+
+    case "set_level":
+      const lvl = Math.max(0, Math.min(1, cmd.level ?? 0.5));
+      targetDev.actuators.forEach(a => a.level = lvl);
+      updateDeviceVisuals(targetDev);
+      pushLevels(targetDev);
+      setStatus(`He set intensity to ${Math.round(lvl * 100)}%`);
+      logCommand(`Set intensity → ${Math.round(lvl * 100)}%`);
+      break;
+
+    case "start_pattern":
+      const patternName = cmd.pattern || "Drift";
+      if (cmd.ceiling !== undefined) targetDev.patternMax = Math.max(0.1, Math.min(1, cmd.ceiling));
+      if (cmd.speed !== undefined) targetDev.patternSpeed = Math.max(0, Math.min(1, cmd.speed));
+      startPattern(targetDev, patternName);
+      setStatus(`He started ${patternName}`);
+      logCommand(`Started pattern: ${patternName}`);
+      break;
+
+    case "scene":
+      const sceneName = cmd.name || "default";
+      // TODO: actually call saved scene
+      setStatus(`He called scene "${sceneName}"`);
+      logCommand(`Called scene: ${sceneName}`);
+      break;
+
+    case "ramp":
+      if (!targetDev) return;
+      const from = cmd.from ?? targetDev.actuators[0]?.level ?? 0;
+      const to = cmd.to ?? 0.7;
+      const durationSec = cmd.duration ?? 20;
+      startRamp(targetDev, from, to, durationSec * 1000);
+      setStatus(`Ramp ${Math.round(from*100)}% → ${Math.round(to*100)}% over ${durationSec}s`);
+      logCommand(`Ramp ${Math.round(from*100)}% → ${Math.round(to*100)}% (${durationSec}s)`);
+      break;
+
+    case "stop":
+    case "stop_device":
+      stopDevice(targetDev);
+      setStatus("He stopped the device.");
+      logCommand("Stopped device");
+      break;
+
+    case "stop_all":
+    case "stop":
+      stopAll(true);
+      setStatus("He stopped everything.");
+      logCommand("Stopped everything");
+      break;
+
+    case "random_tease":
+      startPattern(targetDev, "Drift");
+      setTimeout(() => {
+        if (targetDev.pattern && targetDev.pattern.name === "Drift") {
+          stopPattern(targetDev);
+          const final = 0.15 + Math.random() * 0.35;
+          targetDev.actuators.forEach(a => a.level = final);
+          updateDeviceVisuals(targetDev);
+          pushLevels(targetDev);
+        }
+      }, (cmd.duration_ms || 45000));
+      setStatus("Random tease session started");
+      logCommand("Started random tease");
+      break;
+
+    default:
+      setStatus("Unknown command: " + cmd.action, true);
+  }
+}
+
+// Smooth ramp with nice easing (ease-in-out)
+function easeInOut(t) {
+  return t < 0.5 
+    ? 2 * t * t 
+    : -1 + (4 - 2 * t) * t;
+}
+
+function startRamp(dev, fromLevel, toLevel, durationMs) {
+  stopPattern(dev);
+
+  const startTime = Date.now();
+  const from = Math.max(0, Math.min(1, fromLevel));
+  const to = Math.max(0, Math.min(1, toLevel));
+
+  const rampInterval = setInterval(() => {
+    const elapsed = Date.now() - startTime;
+    let progress = Math.min(elapsed / durationMs, 1);
+    progress = easeInOut(progress);
+
+    const currentLevel = from + (to - from) * progress;
+
+    dev.actuators.forEach(a => a.level = currentLevel);
+    updateDeviceVisuals(dev);
+    pushLevels(dev);
+
+    if (progress >= 1) {
+      clearInterval(rampInterval);
+    }
+  }, 70);
+}
+
+// Auto-setup command listener
+setupCommandListener();
+
+// Init
+renderDevices();
+setStatus("Ready. Start Intiface Central first, then connect. Command listener active.");
+</script>
+</body>
+</html>
