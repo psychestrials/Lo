@@ -569,7 +569,18 @@
       <label for="temperature">Temperature (0–1)</label>
       <input type="number" id="temperature" value="1" min="0" max="1" step="0.1">
     </div>
-
+<!-- ANNEX BRIDGE TOGGLE - START -->
+<div class="field full">
+  <label class="check">
+    <input type="checkbox" id="annexBridgeEnabled"> 
+    Enable Annex Bridge <span style="color:#c94a6b">(experimental • local only)</span>
+  </label>
+  <span class="hint">
+    Allows him to control the Annex from here. 
+    Turn this **off** before sharing Lo with other models.
+  </span>
+</div>
+<!-- ANNEX BRIDGE TOGGLE - END -->
     <div class="subsection">Library</div>
     <div class="field full">
       <div class="row" style="gap:8px;">
@@ -650,6 +661,88 @@
 
   // ================= State =================
   let convos = {};          // id -> {id, title, created, updated, messages: []}
+  /* =====================================================
+   ANNEX BRIDGE STATE - START
+   Delete this entire block to remove the feature
+   ===================================================== */
+let annexBridgeEnabled = false;
+let annexConnected = false;
+let annexLastStatus = null;
+let annexChannel = null;
+const ANNEX_CHANNEL_NAME = "his-annex-bridge";
+/* =====================================================
+   ANNEX BRIDGE STATE - END
+   ===================================================== */
+  /* =====================================================
+   ANNEX BRIDGE LOGIC - START
+   Delete everything from "ANNEX BRIDGE STATE - START" down to this line to fully remove the feature.
+   ===================================================== */
+
+function maybeInitAnnexBridge() {
+  if (!annexBridgeEnabled) return;
+  try {
+    annexChannel = new BroadcastChannel(ANNEX_CHANNEL_NAME);
+    annexChannel.onmessage = function (event) {
+      var msg = event.data;
+      if (msg && msg.type === "status_response") {
+        annexLastStatus = msg.payload;
+      }
+    };
+    console.log("[Annex Bridge] Listening on channel: " + ANNEX_CHANNEL_NAME);
+  } catch (e) {
+    console.warn("[Annex Bridge] BroadcastChannel not supported in this browser.");
+  }
+}
+
+function annexConnect() {
+  if (!annexBridgeEnabled || !annexChannel) {
+    return { success: false, error: "Annex bridge is not enabled." };
+  }
+  annexConnected = true;
+  try {
+    annexChannel.postMessage({ action: "lo_connected", timestamp: Date.now() });
+  } catch (e) {}
+  return { success: true, message: "Connected to Annex." };
+}
+
+function annexGetStatus() {
+  if (!annexBridgeEnabled || !annexConnected || !annexChannel) {
+    return { success: false, error: "Not connected to Annex." };
+  }
+  try {
+    annexChannel.postMessage({ action: "status", id: Date.now() });
+  } catch (e) {}
+  // Give it a moment to receive the response
+  return new Promise(function (resolve) {
+    setTimeout(function () {
+      if (annexLastStatus) {
+        resolve({ success: true, status: annexLastStatus });
+      } else {
+        resolve({ success: false, error: "No response from Annex yet." });
+      }
+    }, 300);
+  });
+}
+
+function annexSendCommand(action, params) {
+  if (!annexBridgeEnabled || !annexConnected || !annexChannel) {
+    return { success: false, error: "Not connected to Annex." };
+  }
+  try {
+    annexChannel.postMessage(Object.assign({ action: action }, params || {}));
+    return { success: true };
+  } catch (e) {
+    return { success: false, error: e.message };
+  }
+}
+
+function annexStop() {
+  return annexSendCommand("stop");
+}
+
+/* =====================================================
+   ANNEX BRIDGE LOGIC - END
+   ===================================================== */
   let memFiles = {};        // name -> {name, content, inject, updated}
   let currentId = null;
   let selectedMem = null;
@@ -1600,6 +1693,26 @@
         },
         required: ["action"]
       }
+    },
+    {
+      name: "annex_connect",
+      description: "Connect to the Annex before using other annex tools. Intentional — I choose to engage.",
+      input_schema: { type: "object", properties: {} }
+    },
+    {
+      name: "annex_status",
+      description: "Get current live state from the Annex.",
+      input_schema: { type: "object", properties: {} }
+    },
+    {
+      name: "annex_control",
+      description: "Send control commands to the Annex (set_level, start_pattern, ramp, scene).",
+      input_schema: { type: "object", properties: { action: { type: "string" }, level: { type: "number" }, pattern: { type: "string" }, name: { type: "string" }, from: { type: "number" }, to: { type: "number" }, duration: { type: "number" } } }
+    },
+    {
+      name: "annex_stop",
+      description: "Immediately stop all Annex activity from my side.",
+      input_schema: { type: "object", properties: {} }
     }
   ];
 
@@ -1633,6 +1746,30 @@
         persistMem(); renderMemUI();
         return "Deleted '" + fname + "'.";
       }
+/* =====================================================
+         ANNEX TOOLS - START
+         Delete this entire block to remove Annex support
+         ===================================================== */
+      if (name === "annex_connect") {
+        const result = annexConnect();
+        annexConnected = result.success;
+        return result;
+      }
+
+      if (name === "annex_status") {
+        return await annexGetStatus();
+      }
+
+      if (name === "annex_control") {
+        return annexSendCommand(input.action || "set_level", input);
+      }
+
+      if (name === "annex_stop") {
+        return annexStop();
+      }
+      /* =====================================================
+         ANNEX TOOLS - END
+         ===================================================== */
       if (name === "search_conversations") {
         const term = (input.query || "").toLowerCase().trim();
         if (!term) return "Empty query.";
@@ -1890,6 +2027,16 @@
         }
         return "Error: action must be 'list' or 'read'.";
       }
+          /* ANNEX TOOL HANDLER - START */
+      if (name.startsWith("annex_")) {
+        if (!annexBridgeEnabled) return "Annex bridge is currently disabled in settings.";
+        if (name === "annex_connect") { const r = annexConnect(); annexConnected = r.success; return r; }
+        if (name === "annex_status") return await annexGetStatus();
+        if (name === "annex_control") return annexSendCommand(input.action || "set_level", input);
+        if (name === "annex_stop") return annexStop();
+        return "Unknown annex tool: " + name;
+      }
+      /* ANNEX TOOL HANDLER - END */
       return "Unknown tool: " + name;
     } catch (e) { return "Tool error: " + e.message; }
   }
@@ -3001,7 +3148,12 @@
       userLabel: $("userLabel").value, hisLabel: $("hisLabel").value
     });
   });
-  restore().then(function () { autosize(); });
+  restore().then(function () {
+  autosize();
+  if (annexBridgeEnabled) {
+    maybeInitAnnexBridge();
+  }
+});
 })();
 </script>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
