@@ -696,18 +696,18 @@ function maybeInitAnnexBridge() {
 
 function annexConnect() {
   if (!annexBridgeEnabled || !annexChannel) {
-    return { success: false, error: "Annex bridge is not enabled." };
+    return "The annex bridge is not enabled — Maddie can turn it on in Settings.";
   }
   annexConnected = true;
   try {
     annexChannel.postMessage({ action: "lo_connected", timestamp: Date.now() });
   } catch (e) {}
-  return { success: true, message: "Connected to Annex." };
+  return "Connected to the annex.";
 }
 
 function annexGetStatus() {
   if (!annexBridgeEnabled || !annexConnected || !annexChannel) {
-    return { success: false, error: "Not connected to Annex." };
+    return "Not connected to the annex — use annex_connect first.";
   }
   try {
     annexChannel.postMessage({ action: "status", id: Date.now() });
@@ -716,9 +716,9 @@ function annexGetStatus() {
   return new Promise(function (resolve) {
     setTimeout(function () {
       if (annexLastStatus) {
-        resolve({ success: true, status: annexLastStatus });
+        resolve("Annex status: " + JSON.stringify(annexLastStatus));
       } else {
-        resolve({ success: false, error: "No response from Annex yet." });
+        resolve("No response from the annex yet — is his-annex.html open in another tab with its bridge on?");
       }
     }, 300);
   });
@@ -726,13 +726,13 @@ function annexGetStatus() {
 
 function annexSendCommand(action, params) {
   if (!annexBridgeEnabled || !annexConnected || !annexChannel) {
-    return { success: false, error: "Not connected to Annex." };
+    return "Not connected to the annex — use annex_connect first.";
   }
   try {
     annexChannel.postMessage(Object.assign({ action: action }, params || {}));
-    return { success: true };
+    return "Sent to the annex: " + action + (params ? " " + JSON.stringify(params) : "");
   } catch (e) {
-    return { success: false, error: e.message };
+    return "Couldn't send to the annex: " + e.message;
   }
 }
 
@@ -2597,7 +2597,7 @@ function annexStop() {
             tool_use_id: tu.id,
             content: badToolIds.has(tu.id)
               ? "Error: this tool call's input was cut off before it finished (the response hit the max token limit). Nothing was written or changed. You can retry with a shorter input, or Maddie can raise max response tokens in Settings."
-              : await runTool(tu.name, tu.input)
+              : await Promise.resolve(runTool(tu.name, tu.input)).then(function (r) { return typeof r === "string" ? r : JSON.stringify(r); })
           })));
           c.messages.push({ role: "user", content: results });
           persistConvos();
