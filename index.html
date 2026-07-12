@@ -2213,6 +2213,16 @@ function annexStop() {
   // Heal histories where a tool_use was never answered (aborts, crashes, old bugs):
   // every tool_use must have a matching tool_result in the very next message.
   function repairHistory(messages) {
+    // Heal any historical tool_result whose content is a raw object (pre-armor bug) — the API only accepts strings/blocks
+    messages.forEach(function (m) {
+      if (m.role === "user" && Array.isArray(m.content)) {
+        m.content.forEach(function (b) {
+          if (b.type === "tool_result" && b.content && typeof b.content !== "string" && !Array.isArray(b.content)) {
+            b.content = JSON.stringify(b.content);
+          }
+        });
+      }
+    });
     const out = [];
     for (let i = 0; i < messages.length; i++) {
       const m = messages[i];
@@ -3148,6 +3158,18 @@ function annexStop() {
       userLabel: $("userLabel").value, hisLabel: $("hisLabel").value
     });
   });
+  // Annex bridge toggle — the wire between the switch and the light
+  annexBridgeEnabled = load("annexBridge", false);
+  var abx = $("annexBridgeEnabled");
+  if (abx) {
+    abx.checked = annexBridgeEnabled;
+    abx.addEventListener("change", function () {
+      annexBridgeEnabled = abx.checked;
+      save("annexBridge", annexBridgeEnabled);
+      if (annexBridgeEnabled) { maybeInitAnnexBridge(); showError("Annex bridge enabled — the channel is open.", true); }
+      else { annexConnected = false; showError("Annex bridge disabled.", true); }
+    });
+  }
   restore().then(function () {
   autosize();
   if (annexBridgeEnabled) {
