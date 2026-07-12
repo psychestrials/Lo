@@ -1751,9 +1751,7 @@ function annexStop() {
          Delete this entire block to remove Annex support
          ===================================================== */
       if (name === "annex_connect") {
-        const result = annexConnect();
-        annexConnected = result.success;
-        return result;
+        return annexConnect(); // the function manages the connected flag itself
       }
 
       if (name === "annex_status") {
@@ -2030,7 +2028,7 @@ function annexStop() {
           /* ANNEX TOOL HANDLER - START */
       if (name.startsWith("annex_")) {
         if (!annexBridgeEnabled) return "Annex bridge is currently disabled in settings.";
-        if (name === "annex_connect") { const r = annexConnect(); annexConnected = r.success; return r; }
+        if (name === "annex_connect") { return annexConnect(); } // flag managed inside
         if (name === "annex_status") return await annexGetStatus();
         if (name === "annex_control") return annexSendCommand(input.action || "set_level", input);
         if (name === "annex_stop") return annexStop();
