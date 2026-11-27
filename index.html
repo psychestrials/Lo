@@ -2421,7 +2421,8 @@ function annexStop() {
         var eff = effSel === "auto"
           ? (/fable/i.test(body.model) ? "high" : /opus/i.test(body.model) ? "medium" : "high")
           : effSel;
-        body.thinking = { type: "adaptive" };
+        // display:"summarized" asks for the readable thinking summary; newer models leave it blank otherwise.
+        body.thinking = { type: "adaptive", display: "summarized" };
         body.output_config = { effort: eff };
       }
     } else {
